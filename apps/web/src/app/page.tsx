@@ -40,17 +40,19 @@ function MoreIcon() {
   );
 }
 
+const iconStroke = "var(--wechat-text)";
+
 function VoiceIcon() {
   return (
     <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden>
-      <circle cx="13" cy="13" r="12" stroke="#191919" strokeWidth="1.2" />
+      <circle cx="13" cy="13" r="12" stroke={iconStroke} strokeWidth="1.2" />
       <path
         d="M9 11.5C9 9.567 10.567 8 12.5 8H13.5C15.433 8 17 9.567 17 11.5V14.5C17 16.433 15.433 18 13.5 18H12.5C10.567 18 9 16.433 9 14.5V11.5Z"
-        stroke="#191919"
+        stroke={iconStroke}
         strokeWidth="1.2"
       />
-      <path d="M13 18V20" stroke="#191919" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M10.5 20H15.5" stroke="#191919" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M13 18V20" stroke={iconStroke} strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M10.5 20H15.5" stroke={iconStroke} strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -58,12 +60,12 @@ function VoiceIcon() {
 function EmojiIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
-      <circle cx="14" cy="14" r="12" stroke="#191919" strokeWidth="1.2" />
-      <circle cx="10" cy="12" r="1.2" fill="#191919" />
-      <circle cx="18" cy="12" r="1.2" fill="#191919" />
+      <circle cx="14" cy="14" r="12" stroke={iconStroke} strokeWidth="1.2" />
+      <circle cx="10" cy="12" r="1.2" fill={iconStroke} />
+      <circle cx="18" cy="12" r="1.2" fill={iconStroke} />
       <path
         d="M10 17.5C11.2 19.2 12.5 20 14 20C15.5 20 16.8 19.2 18 17.5"
-        stroke="#191919"
+        stroke={iconStroke}
         strokeWidth="1.2"
         strokeLinecap="round"
       />
@@ -74,9 +76,9 @@ function EmojiIcon() {
 function PlusIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
-      <circle cx="14" cy="14" r="12" stroke="#191919" strokeWidth="1.2" />
-      <path d="M14 9V19" stroke="#191919" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M9 14H19" stroke="#191919" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="14" cy="14" r="12" stroke={iconStroke} strokeWidth="1.2" />
+      <path d="M14 9V19" stroke={iconStroke} strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M9 14H19" stroke={iconStroke} strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -105,11 +107,19 @@ function Avatar({ variant }: { variant: "self" | "other" }) {
 
 function ChatRow({ item }: { item: ChatItem }) {
   if (item.kind === "timestamp") {
-    return <p className="py-2 text-center text-xs text-[var(--wechat-subtext)]">{item.text}</p>;
+    return (
+      <p className="py-2 text-center text-[12px] leading-[1.2] text-[var(--wechat-text-secondary)]">
+        {item.text}
+      </p>
+    );
   }
 
   if (item.kind === "system") {
-    return <p className="py-2 text-center text-xs text-[var(--wechat-subtext)]">{item.text}</p>;
+    return (
+      <p className="py-2 text-center text-[12px] leading-[1.2] text-[var(--wechat-text-secondary)]">
+        {item.text}
+      </p>
+    );
   }
 
   if (item.kind === "incoming") {
@@ -132,36 +142,38 @@ function ChatRow({ item }: { item: ChatItem }) {
 export default function HomePage() {
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
-      <header className="flex shrink-0 items-center justify-between bg-[var(--wechat-header)] px-3 pb-2.5 pt-3">
+      <header className="relative z-10 flex shrink-0 items-center justify-between px-3 pb-2.5 pt-3">
         <button
           type="button"
-          className="flex h-8 w-8 items-center justify-center text-[#191919]"
+          className="flex h-8 w-8 items-center justify-center text-[var(--wechat-text)]"
           aria-label="返回"
         >
           <ChevronLeftIcon />
         </button>
-        <h1 className="text-[17px] font-medium tracking-tight">对方正在输入中</h1>
+        <h1 className="text-[17px] font-semibold leading-[1.3] text-[var(--wechat-text)]">
+          对方正在输入中
+        </h1>
         <button
           type="button"
-          className="flex h-8 w-8 items-center justify-center text-[#191919]"
+          className="flex h-8 w-8 items-center justify-center text-[var(--wechat-text)]"
           aria-label="更多"
         >
           <MoreIcon />
         </button>
       </header>
 
-      <section className="flex-1 overflow-y-auto px-3 pb-3 pt-1">
+      <section className="-mt-px min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-[calc(0.25rem+1px)]">
         {chatItems.map((item, index) => (
           <ChatRow key={`${item.kind}-${index}`} item={item} />
         ))}
       </section>
 
-      <footer className="shrink-0 border-t border-black/[0.06] bg-white px-2.5 py-2">
+      <footer className="shrink-0 border-t border-[var(--wechat-divider)] bg-[var(--wechat-composer-bg)] px-2.5 py-2">
         <div className="flex items-end gap-2">
           <button type="button" className="mb-0.5 shrink-0" aria-label="语音">
             <VoiceIcon />
           </button>
-          <div className="min-h-[38px] flex-1 rounded-[6px] border border-[var(--wechat-input-border)] bg-white px-3 py-2 text-[16px] leading-snug text-[var(--wechat-subtext)]">
+          <div className="min-h-[36px] flex-1 rounded-[6px] border border-[var(--wechat-input-border)] bg-[var(--wechat-surface)] px-3 py-2 text-[17px] leading-[1.4] text-[var(--wechat-text-secondary)]">
             输入消息...
           </div>
           <button type="button" className="mb-0.5 shrink-0" aria-label="表情">
