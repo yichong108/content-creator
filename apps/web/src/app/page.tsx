@@ -150,7 +150,7 @@ export default function HomePage() {
         >
           <ChevronLeftIcon />
         </button>
-        <h1 className="text-[17px] font-semibold leading-[1.3] text-[var(--wechat-text)]">
+        <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">
           对方正在输入中
         </h1>
         <button
