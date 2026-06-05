@@ -24,21 +24,18 @@ const chatItems: ChatItem[] = [
 ];
 
 function Avatar({ variant }: { variant: "self" | "other" }) {
-  const baseClass =
-    "flex h-[calc(18px+17px*1.4)] w-[calc(18px+17px*1.4)] shrink-0 items-center justify-center rounded-[4px] text-lg leading-none";
-
-  if (variant === "self") {
-    return (
-      <div className={`${baseClass} bg-[#f0e6d8]`} aria-hidden>
-        🐑
-      </div>
-    );
-  }
+  const size = Math.round(18 + 17 * 1.4);
+  const src = variant === "self" ? "/avatar-self.png" : "/avatar-other.png";
+  const alt = variant === "self" ? "我的头像" : "对方头像";
 
   return (
-    <div className={`${baseClass} bg-[#d8dce3]`} aria-hidden>
-      👤
-    </div>
+    <Image
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      className="h-[calc(18px+17px*1.4)] w-[calc(18px+17px*1.4)] shrink-0 rounded-[4px] object-cover"
+    />
   );
 }
 
