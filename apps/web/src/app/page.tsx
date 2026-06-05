@@ -43,7 +43,7 @@ function Avatar({ variant }: { variant: "self" | "other" }) {
 function ChatRow({ item }: { item: ChatItem }) {
   if (item.kind === "timestamp") {
     return (
-      <p className="py-2 text-center text-[12px] leading-[1.2] text-[var(--wechat-text-secondary)]">
+      <p className="pb-4 pt-[calc(1rem+5px)] text-center text-[12px] leading-[1.2] text-[var(--wechat-text-secondary)]">
         {item.text}
       </p>
     );
