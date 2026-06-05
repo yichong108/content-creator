@@ -69,9 +69,7 @@ export default function HomePage() {
             aria-hidden
           />
         </button>
-        <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">
-          对方正在输入中
-        </h1>
+        <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">豆包</h1>
         <button
           type="button"
           className="flex h-8 w-8 items-center justify-center"

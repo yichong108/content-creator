@@ -74,7 +74,7 @@ export const chatItems: ChatItem[] = [
   { kind: "incoming", text: "等你忙完说晚安算吗" },
   { kind: "outgoing", text: "……算" },
   { kind: "timestamp", text: "3月22日 晚上11:58" },
-  { kind: "system", text: '"对方正在输入中" 撤回了一条消息' },
+  { kind: "system", text: '"豆包" 撤回了一条消息' },
   { kind: "incoming", text: "周末有个摄影展，要不要一起" },
   { kind: "outgoing", text: "可以啊，我看看时间" },
   { kind: "outgoing", text: "到时候提前跟你说" },

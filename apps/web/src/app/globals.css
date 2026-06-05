@@ -13,6 +13,8 @@
   --wechat-bubble-other: #ffffff;
   --wechat-avatar-size: calc(18px + 17px * 1.4);
   --wechat-avatar-gap: 0.625rem;
+  /* 气泡三角半高，用于将箭头垂直中心对齐头像中心 */
+  --wechat-bubble-tail-half: 5px;
   /* 两侧各留头像+间距，长气泡右/左缘对齐对方气泡最大宽度 */
   --wechat-bubble-max-width: calc(
     100% - (var(--wechat-avatar-size) + var(--wechat-avatar-gap)) * 2
@@ -66,10 +68,10 @@ body {
 .wechat-bubble-in::before {
   content: "";
   position: absolute;
-  top: 13px;
+  top: calc(var(--wechat-avatar-size) / 2 - var(--wechat-bubble-tail-half));
   left: -5px;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
+  border-top: var(--wechat-bubble-tail-half) solid transparent;
+  border-bottom: var(--wechat-bubble-tail-half) solid transparent;
   border-right: 6px solid var(--wechat-bubble-other);
 }
 
@@ -80,9 +82,9 @@ body {
 .wechat-bubble-out::before {
   content: "";
   position: absolute;
-  top: 13px;
+  top: calc(var(--wechat-avatar-size) / 2 - var(--wechat-bubble-tail-half));
   right: -5px;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
+  border-top: var(--wechat-bubble-tail-half) solid transparent;
+  border-bottom: var(--wechat-bubble-tail-half) solid transparent;
   border-left: 6px solid var(--wechat-bubble-self);
 }
