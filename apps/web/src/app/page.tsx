@@ -1,27 +1,5 @@
 import Image from "next/image";
-
-type ChatItem =
-  | { kind: "timestamp"; text: string }
-  | { kind: "system"; text: string }
-  | { kind: "incoming"; text: string }
-  | { kind: "outgoing"; text: string };
-
-const chatItems: ChatItem[] = [
-  { kind: "timestamp", text: "晚上10:45" },
-  { kind: "outgoing", text: "今天下班有点晚，路上注意安全哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈" },
-  { kind: "timestamp", text: "晚上10:48" },
-  { kind: "incoming", text: "好呀，我已经到家了" },
-  { kind: "incoming", text: "你那边还顺利吗？" },
-  { kind: "system", text: '"对方正在输入中" 撤回了一条消息' },
-  { kind: "incoming", text: "周末要不要一起去看展？" },
-  { kind: "outgoing", text: "可以啊，我看看时间" },
-  { kind: "outgoing", text: "到时候提前跟你说" },
-  { kind: "outgoing", text: "今天有空吗？" },
-  { kind: "outgoing", text: "吃饭没有？" },
-  { kind: "outgoing", text: "洗澡没有？" },
-  { kind: "outgoing", text: "穿衣服没有？" },
-  { kind: "outgoing", text: "吃晚饭没有？" },
-];
+import { chatItems, type ChatItem } from "@/data/chat-items";
 
 function Avatar({ variant }: { variant: "self" | "other" }) {
   const size = Math.round(18 + 17 * 1.4);
