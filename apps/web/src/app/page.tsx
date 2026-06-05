@@ -8,7 +8,7 @@ type ChatItem =
 
 const chatItems: ChatItem[] = [
   { kind: "timestamp", text: "晚上10:45" },
-  { kind: "outgoing", text: "今天下班有点晚，路上注意安全哈哈" },
+  { kind: "outgoing", text: "今天下班有点晚，路上注意安全哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈" },
   { kind: "timestamp", text: "晚上10:48" },
   { kind: "incoming", text: "好呀，我已经到家了" },
   { kind: "incoming", text: "你那边还顺利吗？" },
@@ -60,9 +60,7 @@ function ChatRow({ item }: { item: ChatItem }) {
     return (
       <div className="flex items-start gap-2.5 py-1.5">
         <Avatar variant="other" />
-        <div className="wechat-bubble-in max-w-[calc(100%-18px-17px*1.4-0.625rem)]">
-          {item.text}
-        </div>
+        <div className="wechat-bubble-in">{item.text}</div>
       </div>
     );
   }
@@ -70,7 +68,7 @@ function ChatRow({ item }: { item: ChatItem }) {
   return (
     <div className="flex flex-row-reverse items-start gap-2.5 py-1.5">
       <Avatar variant="self" />
-      <div className="wechat-bubble-out max-w-[calc(100%-18px-17px*1.4-0.625rem)]">{item.text}</div>
+      <div className="wechat-bubble-out">{item.text}</div>
     </div>
   );
 }

@@ -11,6 +11,12 @@
   /* 气泡 */
   --wechat-bubble-self: #95ec69;
   --wechat-bubble-other: #ffffff;
+  --wechat-avatar-size: calc(18px + 17px * 1.4);
+  --wechat-avatar-gap: 0.625rem;
+  /* 两侧各留头像+间距，长气泡右/左缘对齐对方气泡最大宽度 */
+  --wechat-bubble-max-width: calc(
+    100% - (var(--wechat-avatar-size) + var(--wechat-avatar-gap)) * 2
+  );
 
   /* 文字 */
   --wechat-text: #000000;
@@ -42,7 +48,9 @@ body {
 .wechat-bubble-in,
 .wechat-bubble-out {
   position: relative;
-  max-width: 100%;
+  /* 长文本换行；最宽延伸至对侧头像内侧，与微信气泡对齐 */
+  max-width: var(--wechat-bubble-max-width);
+  min-width: 0;
   padding: 9px 12px;
   font-size: 17px;
   line-height: 1.4;
