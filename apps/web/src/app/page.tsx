@@ -8,7 +8,7 @@ type ChatItem =
 
 const chatItems: ChatItem[] = [
   { kind: "timestamp", text: "晚上10:45" },
-  { kind: "outgoing", text: "今天下班有点晚，路上注意安全" },
+  { kind: "outgoing", text: "今天下班有点晚，路上注意安全哈哈" },
   { kind: "timestamp", text: "晚上10:48" },
   { kind: "incoming", text: "好呀，我已经到家了" },
   { kind: "incoming", text: "你那边还顺利吗？" },
@@ -16,25 +16,27 @@ const chatItems: ChatItem[] = [
   { kind: "incoming", text: "周末要不要一起去看展？" },
   { kind: "outgoing", text: "可以啊，我看看时间" },
   { kind: "outgoing", text: "到时候提前跟你说" },
+  { kind: "outgoing", text: "今天有空吗？" },
+  { kind: "outgoing", text: "吃饭没有？" },
+  { kind: "outgoing", text: "洗澡没有？" },
+  { kind: "outgoing", text: "穿衣服没有？" },
+  { kind: "outgoing", text: "吃晚饭没有？" },
 ];
 
 function Avatar({ variant }: { variant: "self" | "other" }) {
+  const baseClass =
+    "flex h-[calc(18px+17px*1.4)] w-[calc(18px+17px*1.4)] shrink-0 items-center justify-center rounded-[4px] text-lg leading-none";
+
   if (variant === "self") {
     return (
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] bg-[#f0e6d8] text-lg"
-        aria-hidden
-      >
+      <div className={`${baseClass} bg-[#f0e6d8]`} aria-hidden>
         🐑
       </div>
     );
   }
 
   return (
-    <div
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] bg-[#d8dce3] text-lg"
-      aria-hidden
-    >
+    <div className={`${baseClass} bg-[#d8dce3]`} aria-hidden>
       👤
     </div>
   );
@@ -61,7 +63,9 @@ function ChatRow({ item }: { item: ChatItem }) {
     return (
       <div className="flex items-start gap-2.5 py-1.5">
         <Avatar variant="other" />
-        <div className="wechat-bubble-in max-w-[calc(100%-3.25rem)]">{item.text}</div>
+        <div className="wechat-bubble-in max-w-[calc(100%-18px-17px*1.4-0.625rem)]">
+          {item.text}
+        </div>
       </div>
     );
   }
@@ -69,7 +73,7 @@ function ChatRow({ item }: { item: ChatItem }) {
   return (
     <div className="flex flex-row-reverse items-start gap-2.5 py-1.5">
       <Avatar variant="self" />
-      <div className="wechat-bubble-out max-w-[calc(100%-3.25rem)]">{item.text}</div>
+      <div className="wechat-bubble-out max-w-[calc(100%-18px-17px*1.4-0.625rem)]">{item.text}</div>
     </div>
   );
 }
@@ -111,7 +115,7 @@ export default function HomePage() {
         </button>
       </header>
 
-      <section className="-mt-px min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-[calc(0.25rem+1px)]">
+      <section className="-mt-px min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(0.25rem+1px)] pt-[calc(0.25rem+1px)]">
         {chatItems.map((item, index) => (
           <ChatRow key={`${item.kind}-${index}`} item={item} />
         ))}
