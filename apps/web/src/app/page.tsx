@@ -36,7 +36,7 @@ function ChatRow({ item }: { item: ChatItem }) {
 
   if (item.kind === "incoming") {
     return (
-      <div className="flex items-start gap-[var(--wechat-chat-gutter)] py-1.5">
+      <div className="flex items-start gap-[var(--wechat-avatar-gap)] py-1.5">
         <Avatar variant="other" />
         <div className="wechat-bubble-in">{item.text}</div>
       </div>
@@ -44,7 +44,7 @@ function ChatRow({ item }: { item: ChatItem }) {
   }
 
   return (
-    <div className="flex flex-row-reverse items-start gap-[var(--wechat-chat-gutter)] py-1.5">
+    <div className="flex flex-row-reverse items-start gap-[var(--wechat-avatar-gap)] py-1.5">
       <Avatar variant="self" />
       <div className="wechat-bubble-out">{item.text}</div>
     </div>
