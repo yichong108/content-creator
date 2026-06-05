@@ -19,6 +19,9 @@ tsconfig.tsbuildinfo
 # Vercel
 .vercel
 
+# Generated screenshots
+screenshots/
+
 # Logs
 *.log
 npm-debug.log*

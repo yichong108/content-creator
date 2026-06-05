@@ -10,7 +10,8 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "format": "turbo format",
-    "format:check": "turbo format:check"
+    "format:check": "turbo format:check",
+    "screenshot:chat": "pnpm --dir apps/web screenshot:chat"
   },
   "lint-staged": {
     "apps/web/**/*.{ts,tsx,md,json}": [
