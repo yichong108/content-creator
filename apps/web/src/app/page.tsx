@@ -57,7 +57,7 @@ export default function HomePage() {
       <header className="relative z-10 flex shrink-0 items-center justify-between border-b-[0.5px] border-black/[0.05] px-3 pb-2.5 pt-3">
         <button
           type="button"
-          className="flex h-8 w-8 items-center justify-center"
+          className="-ml-1 flex h-8 w-8 items-center justify-center"
           aria-label="返回"
         >
           <Image
