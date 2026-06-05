@@ -18,30 +18,6 @@ const chatItems: ChatItem[] = [
   { kind: "outgoing", text: "到时候提前跟你说" },
 ];
 
-function ChevronLeftIcon() {
-  return (
-    <svg width="10" height="18" viewBox="0 0 10 18" fill="none" aria-hidden>
-      <path
-        d="M9 1L1 9L9 17"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function MoreIcon() {
-  return (
-    <svg width="22" height="6" viewBox="0 0 22 6" fill="currentColor" aria-hidden>
-      <circle cx="3" cy="3" r="2.5" />
-      <circle cx="11" cy="3" r="2.5" />
-      <circle cx="19" cy="3" r="2.5" />
-    </svg>
-  );
-}
-
 function Avatar({ variant }: { variant: "self" | "other" }) {
   if (variant === "self") {
     return (
@@ -104,20 +80,34 @@ export default function HomePage() {
       <header className="relative z-10 flex shrink-0 items-center justify-between px-3 pb-2.5 pt-3">
         <button
           type="button"
-          className="flex h-8 w-8 items-center justify-center text-[var(--wechat-text)]"
+          className="flex h-8 w-8 items-center justify-center"
           aria-label="返回"
         >
-          <ChevronLeftIcon />
+          <Image
+            src="/back-arrow.png"
+            alt=""
+            width={10}
+            height={18}
+            className="block h-[18px] w-auto"
+            aria-hidden
+          />
         </button>
         <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">
           对方正在输入中
         </h1>
         <button
           type="button"
-          className="flex h-8 w-8 items-center justify-center text-[var(--wechat-text)]"
+          className="flex h-8 w-8 items-center justify-center"
           aria-label="更多"
         >
-          <MoreIcon />
+          <Image
+            src="/more-icon.png"
+            alt=""
+            width={16}
+            height={3}
+            className="block h-1 w-auto"
+            aria-hidden
+          />
         </button>
       </header>
 
