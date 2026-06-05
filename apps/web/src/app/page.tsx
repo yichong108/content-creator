@@ -77,7 +77,7 @@ function ChatRow({ item }: { item: ChatItem }) {
 export default function HomePage() {
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
-      <header className="relative z-10 flex shrink-0 items-center justify-between px-3 pb-2.5 pt-3">
+      <header className="relative z-10 flex shrink-0 items-center justify-between border-b-[0.5px] border-black/[0.05] px-3 pb-2.5 pt-3">
         <button
           type="button"
           className="flex h-8 w-8 items-center justify-center"
