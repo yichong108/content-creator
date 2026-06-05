@@ -96,10 +96,10 @@ export default function HomePage() {
 
       <footer className="shrink-0">
         <Image
-          src="/chat-footer.png"
+          src="/chat-input-bar.png"
           alt="聊天输入栏"
-          width={999}
-          height={257}
+          width={1024}
+          height={145}
           className="block h-auto w-full"
           priority
         />
