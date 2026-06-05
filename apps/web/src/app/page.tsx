@@ -12,7 +12,7 @@ const chatItems: ChatItem[] = [
   { kind: "timestamp", text: "晚上10:48" },
   { kind: "incoming", text: "好呀，我已经到家了" },
   { kind: "incoming", text: "你那边还顺利吗？" },
-  { kind: "system", text: "“对方正在输入中” 撤回了一条消息" },
+  { kind: "system", text: '"对方正在输入中" 撤回了一条消息' },
   { kind: "incoming", text: "周末要不要一起去看展？" },
   { kind: "outgoing", text: "可以啊，我看看时间" },
   { kind: "outgoing", text: "到时候提前跟你说" },
@@ -53,7 +53,7 @@ function ChatRow({ item }: { item: ChatItem }) {
 
   if (item.kind === "system") {
     return (
-      <p className="py-2 text-center text-[12px] leading-[1.2] text-[var(--wechat-text-secondary)]">
+      <p className="py-2.5 text-center text-[14px] leading-[1.2] text-[var(--wechat-text-secondary)]">
         {item.text}
       </p>
     );
