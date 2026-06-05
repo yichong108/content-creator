@@ -1,0 +1,47 @@
+from typing import Literal
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+from app.config import settings
+from app.graph.chat import chat_graph, to_langchain_messages
+
+app = FastAPI(title="WeChat Bot API", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"] = "user"
+    content: str = Field(min_length=1)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+
+
+class ChatResponse(BaseModel):
+    message: ChatMessage
+
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest) -> ChatResponse:
+    payload = [message.model_dump() for message in request.messages]
+    state = {"messages": to_langchain_messages(payload)}
+    result = chat_graph.invoke(state)
+    last = result["messages"][-1]
+    return ChatResponse(
+        message=ChatMessage(role="assistant", content=str(last.content)),
+    )

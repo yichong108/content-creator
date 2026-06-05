@@ -1,0 +1,14 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "setup": "node ../../scripts/setup-api.mjs",
+    "dev": "node ../../scripts/py.mjs -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "start": "node ../../scripts/py.mjs -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "lint": "node ../../scripts/py.mjs -m ruff check .",
+    "format": "node ../../scripts/py.mjs -m ruff format .",
+    "format:check": "node ../../scripts/py.mjs -m ruff format --check .",
+    "typecheck": "node ../../scripts/py.mjs -m mypy app"
+  }
+}

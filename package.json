@@ -1,0 +1,31 @@
+{
+  "name": "wechat-bot",
+  "private": true,
+  "scripts": {
+    "setup": "pnpm install && node scripts/setup-api.mjs",
+    "setup:py": "node scripts/setup-api.mjs",
+    "prepare": "husky",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "format": "turbo format",
+    "format:check": "turbo format:check"
+  },
+  "lint-staged": {
+    "apps/web/**/*.{ts,tsx,md,json}": [
+      "pnpm --dir apps/web exec prettier --write",
+      "pnpm --dir apps/web exec eslint --fix"
+    ],
+    "apps/api/**/*.py": "node scripts/ruff-staged.mjs"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.0",
+    "turbo": "^2.5.4"
+  },
+  "packageManager": "pnpm@11.0.9",
+  "engines": {
+    "node": ">=20"
+  }
+}
