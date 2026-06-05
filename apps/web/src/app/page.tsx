@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type ChatItem =
   | { kind: "timestamp"; text: string }
   | { kind: "system"; text: string }
@@ -36,49 +38,6 @@ function MoreIcon() {
       <circle cx="3" cy="3" r="2.5" />
       <circle cx="11" cy="3" r="2.5" />
       <circle cx="19" cy="3" r="2.5" />
-    </svg>
-  );
-}
-
-const iconStroke = "var(--wechat-text)";
-
-function VoiceIcon() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden>
-      <circle cx="13" cy="13" r="12" stroke={iconStroke} strokeWidth="1.2" />
-      <path
-        d="M9 11.5C9 9.567 10.567 8 12.5 8H13.5C15.433 8 17 9.567 17 11.5V14.5C17 16.433 15.433 18 13.5 18H12.5C10.567 18 9 16.433 9 14.5V11.5Z"
-        stroke={iconStroke}
-        strokeWidth="1.2"
-      />
-      <path d="M13 18V20" stroke={iconStroke} strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M10.5 20H15.5" stroke={iconStroke} strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function EmojiIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
-      <circle cx="14" cy="14" r="12" stroke={iconStroke} strokeWidth="1.2" />
-      <circle cx="10" cy="12" r="1.2" fill={iconStroke} />
-      <circle cx="18" cy="12" r="1.2" fill={iconStroke} />
-      <path
-        d="M10 17.5C11.2 19.2 12.5 20 14 20C15.5 20 16.8 19.2 18 17.5"
-        stroke={iconStroke}
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
-      <circle cx="14" cy="14" r="12" stroke={iconStroke} strokeWidth="1.2" />
-      <path d="M14 9V19" stroke={iconStroke} strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M9 14H19" stroke={iconStroke} strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -168,21 +127,15 @@ export default function HomePage() {
         ))}
       </section>
 
-      <footer className="shrink-0 border-t border-[var(--wechat-divider)] bg-[var(--wechat-composer-bg)] px-2.5 py-2">
-        <div className="flex items-end gap-2">
-          <button type="button" className="mb-0.5 shrink-0" aria-label="语音">
-            <VoiceIcon />
-          </button>
-          <div className="min-h-[36px] flex-1 rounded-[6px] border border-[var(--wechat-input-border)] bg-[var(--wechat-surface)] px-3 py-2 text-[17px] leading-[1.4] text-[var(--wechat-text-secondary)]">
-            输入消息...
-          </div>
-          <button type="button" className="mb-0.5 shrink-0" aria-label="表情">
-            <EmojiIcon />
-          </button>
-          <button type="button" className="mb-0.5 shrink-0" aria-label="更多功能">
-            <PlusIcon />
-          </button>
-        </div>
+      <footer className="shrink-0">
+        <Image
+          src="/chat-footer.png"
+          alt="聊天输入栏"
+          width={999}
+          height={257}
+          className="block h-auto w-full"
+          priority
+        />
       </footer>
     </main>
   );
