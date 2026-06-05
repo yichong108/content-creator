@@ -3,20 +3,20 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "给 wechat-bot 的 page.tsx 生成一段完整的 chatItems，男生 outgoing 女生 incoming，从加好友到分手，大概 50 条，风格真实一点",
-      "expected_output": "合法 TypeScript ChatItem[]，六阶段完整，角色正确，可直接替换 page.tsx 常量",
-      "files": ["apps/web/src/app/page.tsx"]
+      "prompt": "给 wechat-bot 生成一段 chatItems，女生是豆包 incoming，男生是 DeepSeek outgoing，大概 50 条，聊他们互相调侃开源闭源，风格真实一点",
+      "expected_output": "合法 TypeScript ChatItem[]，角色正确，无固定恋爱分手线，可直接替换 chat-items.ts",
+      "files": ["apps/web/src/data/chat-items.ts"]
     },
     {
       "id": 2,
-      "prompt": "写 20 条微信 mock 聊天，只要暧昧到恋爱再到分手这段，搞笑一点，女生 incoming",
-      "expected_output": "约 20 条压缩版，含 timestamp，incoming/outgoing 未颠倒，语气口语化",
+      "prompt": "写 20 条微信 mock 聊天，豆包 incoming DeepSeek outgoing，搞笑一点，话题是豆包让 DeepSeek 帮忙想短视频标题",
+      "expected_output": "约 20 条，含 timestamp，incoming/outgoing 未颠倒，口语化，符合两人人设",
       "files": []
     },
     {
       "id": 3,
-      "prompt": "生成 JSON 格式的聊天数据，两个人是同事关系慢慢在一起又因为工作吵架分手",
-      "expected_output": "JSON array，kind 字段正确，剧情含同事设定与分手原因",
+      "prompt": "生成 JSON 格式的聊天数据，豆包和 DeepSeek 深夜聊 AI 行业八卦，不要恋爱剧情",
+      "expected_output": "JSON array，kind 字段正确，人设一致，话题自由无六阶段模板",
       "files": []
     }
   ]

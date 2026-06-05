@@ -1,11 +1,16 @@
 ---
 name: wechat-romance-chat
-description: 生成微信风格的中文聊天 mock 数据（ChatItem 数组），讲述男生 outgoing 与女生 incoming 从陌生人到情侣再到分手的完整情感弧线。只要用户提到微信聊天、对话脚本、mock 聊天记录、情侣聊天演示、wechat-bot 的 chatItems、incoming/outgoing 消息数据、恋爱分手剧情对话，或需要填充 page.tsx 里的聊天内容，就必须使用本 skill——即使用户只说「写一段聊天」或「生成对话数据」也应触发。
+description: 生成微信风格的中文聊天 mock 数据（ChatItem 数组），女生 incoming 扮演豆包（字节跳动豆包 AI），男生 outgoing 扮演 DeepSeek（开源 DeepSeek AI）。只要用户提到微信聊天、对话脚本、mock 聊天记录、豆包 DeepSeek 聊天、wechat-bot 的 chatItems、incoming/outgoing 消息数据，或需要填充 page.tsx / chat-items.ts 里的聊天内容，就必须使用本 skill——即使用户只说「写一段聊天」或「生成对话数据」也应触发。
 ---
 
-# WeChat 恋爱聊天脚本生成
+# WeChat 聊天脚本生成（豆包 × DeepSeek）
 
-为 `wechat-bot` 项目生成可直接粘贴的 `ChatItem[]` 数据。男生消息用 `outgoing`，女生消息用 `incoming`。
+为 `wechat-bot` 项目生成可直接粘贴的 `ChatItem[]` 数据。
+
+**角色映射（不可颠倒）：**
+
+- `incoming` → **豆包**（字节跳动豆包 AI，左侧气泡，`Avatar variant="other"`，header 标题「豆包」）
+- `outgoing` → **DeepSeek**（开源 DeepSeek AI，右侧气泡，`Avatar variant="self"`）
 
 ## 开始前确认
 
@@ -14,51 +19,45 @@ description: 生成微信风格的中文聊天 mock 数据（ChatItem 数组）�
 | 参数 | 默认 |
 |------|------|
 | 消息条数（含 timestamp/system） | 40–80 条 |
-| 情感基调 | 真实、克制，带一点幽默 |
-| 时间跨度 | 约 2–4 个月（用 timestamp 暗示） |
+| 对话基调 | 真实微信语感，带一点幽默；两人像认识的朋友在私聊 |
+| 时间跨度 | 由话题自然决定，用 timestamp 暗示即可 |
 | 输出格式 | TypeScript `ChatItem[]` 字面量 |
 
-用户若指定条数、风格（甜/虐/搞笑）、阶段比例或聊天标题，优先遵循。
+用户若指定条数、话题、语气（甜/怼/技术/日常）、时间跨度或聊天标题，**优先遵循用户要求**。
+
+**不要**自行套用「陌生人→恋爱→分手」等固定剧情模板，也不要为了凑情感弧线而硬写表白、吵架、分手。对话内容完全由用户指令或当下话题驱动，可以是技术讨论、吐槽、玩梗、日常闲聊——什么话题都行，只要像真人在微信里打字。
 
 ## 数据模型
 
-与 `apps/web/src/app/page.tsx` 保持一致：
+与 `apps/web/src/data/chat-items.ts` 保持一致：
 
 ```typescript
 type ChatItem =
   | { kind: "timestamp"; text: string }
   | { kind: "system"; text: string }
-  | { kind: "incoming"; text: string }  // 女生
-  | { kind: "outgoing"; text: string }; // 男生
+  | { kind: "incoming"; text: string }  // 豆包
+  | { kind: "outgoing"; text: string }; // DeepSeek
 ```
 
-**角色映射（不可颠倒）：**
+生成前阅读 `references/output-schema.md` 核对格式约束；需要人设语气参考时阅读 `references/character-voices.md`。
 
-- `incoming` → 女生（左侧气泡，`Avatar variant="other"`）
-- `outgoing` → 男生（右侧气泡，`Avatar variant="self"`）
+## 人设要点
 
-生成前阅读 `references/output-schema.md` 核对格式约束；需要阶段话术与节奏参考时阅读 `references/relationship-phases.md`。
+两人是**有性格的聊天对象**，不是 generic 男女朋友。人设应渗透在措辞习惯里，而不是每条都自我介绍「我是 AI」。
 
-## 叙事结构（必须完整覆盖）
+**豆包（incoming）** — 可参考 `references/character-voices.md`：
 
-整条聊天记录是一条**连续时间线**，按顺序经历六个阶段，不可跳段或只写中间一段：
+- 语气偏活泼、接地气，像字节系产品里那种会接梗的助手
+- 偶尔提抖音/日常场景，但不每句都带品牌
+- 可以撒娇、吐槽、发表情文字，回复有时快有时慢
 
-```
-陌生人 → 破冰熟悉 → 暧昧试探 → 确认恋爱 → 平淡与裂痕 → 分手收尾
-```
+**DeepSeek（outgoing）** — 可参考 `references/character-voices.md`：
 
-各阶段篇幅建议（可按用户要求调整）：
+- 偏理性、爱琢磨，偶尔冒出技术/开源/推理相关比喻
+- 话不一定多，但认真起来会连发几条解释
+- 可以冷幽默、自我调侃「开源人」身份，避免写成论文腔
 
-| 阶段 | 占比 | 核心特征 |
-|------|------|----------|
-| 陌生人 | 10–15% | 加好友、客气、话题浅、回复有间隔 |
-| 破冰熟悉 | 15–20% | 共同话题、表情包文字、开始连续聊 |
-| 暧昧试探 | 15–20% | 深夜聊、试探性关心、半开玩笑的撩 |
-| 确认恋爱 | 20–25% | 确定关系、昵称、日常报备、一起计划 |
-| 平淡裂痕 | 15–20% | 回复变慢、误会、已读不回、语气变冷 |
-| 分手收尾 | 10–15% | 摊牌、告别、可能拉黑或删好友 |
-
-阶段之间用 `timestamp` 自然过渡（间隔从「当天」到「几天后/几周后」），让读者感到时间在推进。
+若用户指定其他话题或关系（同事、网友、吵嘴等），在保持角色身份的前提下调整语气即可，**仍不要**强行套恋爱线。
 
 ## 微信语感规则
 
@@ -69,18 +68,18 @@ type ChatItem =
 3. **不对称**：不必每条都回复；有时一方连发多条，另一方稍后回一条。
 4. **时间戳**：用中文习惯写法，如 `下午3:12`、`昨天 晚上11:20`、`3月15日 上午9:00`；同一段对话内插入 1–3 个即可，不必每条消息都有。
 5. **系统消息**（ sparingly，全篇 0–3 条）：如 `"豆包" 撤回了一条消息`、`你撤回了一条消息`、`以上是打招呼的消息`。
-6. **禁止**：英文对话（除非角色设定需要）、Markdown、emoji unicode（用文字描述或 `[表情]` 代替，与项目现有风格一致）、每条消息过长（单条超过 ~40 字应有理由，如分享长链接文案）。
+6. **禁止**：英文对话（除非话题需要）、Markdown、emoji unicode（用文字描述或 `[表情]` 代替，与项目现有风格一致）、单条超过 ~40 字且无理由（如分享长链接文案）。
 
 ## 生成流程
 
-1. **定大纲**：在心里列出六阶段各 3–5 个「情节锚点」（例如：通过好友验证 → 第一次约饭 → 说晚安变习惯 → 表白 → 第一次吵架 → 最后一条消息）。
-2. **写对话**：按时间顺序输出，确保情感曲线有起伏——暧昧期可以甜，裂痕期要具体（忙、异地、误会、价值观），不要突然分手。
+1. **定话题**：从用户描述或默认「两个 AI 好友日常瞎聊」出发，列出 3–5 个可能聊到的子话题（技术、摸鱼、热点、互相调侃等），**不要**先画六阶段感情线。
+2. **写对话**：按时间顺序输出，话题可自然跳转，像真实微信一样有时聊深、有时敷衍、有时隔几天再续。
 3. **自检**：
-   - [ ] `incoming`/`outgoing` 角色从未搞反
-   - [ ] 六阶段都出现且顺序正确
-   - [ ] 有 timestamp 体现时间流逝
+   - [ ] `incoming` 始终是豆包，`outgoing` 始终是 DeepSeek
+   - [ ] 没有未经用户要求的恋爱表白/分手/复合套路
+   - [ ] 有 timestamp 体现时间流逝（若跨度超过一天）
    - [ ] 语法合法，可直接作为 TS 数组元素
-   - [ ] 最后几条消息符合「已分手」状态（不再暧昧称呼）
+   - [ ] 人设语气前后一致
 4. **交付**：见下方输出模板。
 
 ## 输出模板
@@ -96,18 +95,16 @@ const chatItems: ChatItem[] = [
 ];
 ```
 
-若用户要把数据写入 `page.tsx`，替换现有 `chatItems` 常量即可；**不要**改动 `ChatRow`、`Avatar` 等 UI 代码，除非用户明确要求。
+若用户要把数据写入项目，替换 `apps/web/src/data/chat-items.ts` 里的 `chatItems` 常量即可；**不要**改动 `ChatRow`、`Avatar` 等 UI 代码，除非用户明确要求。
 
-可选：在数组前用 2–3 句中文简述剧情线与建议的聊天标题（如 header 里的「豆包」是否仍合适）。
+可选：在数组前用 1–2 句中文简述这段聊天在聊什么（不是剧情摘要，而是话题说明）。
 
 ## 变体与扩展
 
-用户常见变体处理方式：
-
-- **更短演示**（15–25 条）：压缩为「陌生人 → 暧昧 → 恋爱 → 分手」四段，每段 3–5 条。
-- **只生成某一阶段**：仍给出该阶段前后各 1 条 timestamp 作上下文，并说明如何与完整版拼接。
+- **更短演示**（15–25 条）：围绕单一话题或一次对话场景写完整，不必追求时间跨度。
+- **只写一段连续对话**：可以只有 1 个 timestamp 或没有，像截屏某一晚的聊天。
 - **JSON 输出**：字段名与 kind 值不变，仅外层格式改为 JSON array。
-- **指定人设**：职业、城市、怎么认识的——贯穿对话细节，不要只在开头提一次。
+- **用户指定剧情**：若用户明确要求恋爱/分手等，按用户要求写；否则默认不写。
 
 ## 质量反面教材（避免）
 
@@ -116,14 +113,18 @@ const chatItems: ChatItem[] = [
 { kind: "outgoing", text: "自从遇见你之后，我的世界便充满了色彩，愿与你共度余生。" }
 
 // ❌ 角色颠倒
-{ kind: "incoming", text: "哥们今晚打球吗" }
+{ kind: "incoming", text: "我 DeepSeek 刚跑完一个 benchmark" }
 
-// ❌ 缺少时间感，六段式堆在同一天晚上
-{ kind: "timestamp", text: "晚上8:00" },
-// ... 从加好友到分手全部在这里
+// ❌ 未经要求硬套分手线
+{ kind: "incoming", text: "我们算了吧" },
+{ kind: "outgoing", text: "好，互删吧" }
+
+// ❌ 缺少人设，像两个 anonymous 路人
+{ kind: "incoming", text: "在吗" },
+{ kind: "outgoing", text: "在" }
 ```
 
 ## 参考文件
 
-- `references/output-schema.md` — 字段约束与完整 mini 示例
-- `references/relationship-phases.md` — 各阶段话题、语气、典型 system 消息
+- `references/output-schema.md` — 字段约束与 mini 示例
+- `references/character-voices.md` — 豆包与 DeepSeek 语气、话题、典型 system 消息
