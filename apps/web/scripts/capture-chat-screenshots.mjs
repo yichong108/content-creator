@@ -10,8 +10,8 @@
  * 环境变量:
  *   CHAT_URL   - 页面地址，默认 http://localhost:3000
  *   OUT_DIR    - 输出目录，默认 apps/web/screenshots/chat
- *   VIEWPORT_W - 视口宽度，默认 428
- *   VIEWPORT_H - 视口高度，默认 926
+ *   VIEWPORT_W - 视口宽度
+ *   VIEWPORT_H - 视口高度
  *   OVERLAP    - 相邻截图重叠比例 0~1，默认 0.1
  *
  * 输出文件名: chat-{yyyyMMddHHmm}-{序号}.png
@@ -30,8 +30,8 @@ const OUT_DIR = process.env.OUT_DIR
   ? path.resolve(process.env.OUT_DIR)
   : path.join(WEB_ROOT, "screenshots", "chat");
 const VIEWPORT = {
-  width: Number(process.env.VIEWPORT_W ?? 428),
-  height: Number(process.env.VIEWPORT_H ?? 926),
+  width: Number(process.env.VIEWPORT_W ?? 375*2),
+  height: Number(process.env.VIEWPORT_H ?? 667*2),
 };
 const OVERLAP = Math.min(1, Math.max(0, Number(process.env.OVERLAP ?? 0.1)));
 const SCROLL_SETTLE_MS = 300;
