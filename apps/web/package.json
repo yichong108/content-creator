@@ -10,9 +10,7 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
-    "screenshot:chat": "node scripts/capture-chat-screenshots.mjs",
-    "screenshot:cover": "node scripts/capture-collection-cover.mjs",
-    "screenshot:cover:202606060245": "node scripts/capture-chat-cover-202606060245.mjs"
+    "screenshot:chat": "node scripts/capture-chat-screenshots.mjs"
   },
   "dependencies": {
     "next": "^15.3.3",
