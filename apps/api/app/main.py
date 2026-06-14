@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import FastAPI
@@ -5,9 +7,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app.config import settings
+from app.db import init_db
 from app.graph.chat import chat_graph, to_langchain_messages
+from app.models import chat_item as _chat_item_model  # noqa: F401
+from app.routers.chat_items import router as chat_items_router
+from app.seed.chat_items import seed_chat_items
 
-app = FastAPI(title="WeChat Bot API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """应用启动时建表并在空库时导入初始聊天数据。"""
+    await init_db()
+    await seed_chat_items()
+    yield
+
+
+app = FastAPI(title="WeChat Bot API", version="0.1.0", lifespan=lifespan)
+app.include_router(chat_items_router)
 
 app.add_middleware(
     CORSMiddleware,

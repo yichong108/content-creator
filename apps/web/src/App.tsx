@@ -1,5 +1,7 @@
-import Image from "next/image";
-import { chatItems, type ChatItem } from "@/data/chat-items";
+import { useEffect, useState } from "react";
+
+import type { ChatItem } from "@/data/chat-items";
+import { fetchChatItems } from "@/lib/api";
 
 function Avatar({ variant }: { variant: "self" | "other" }) {
   const size = Math.round(18 + 17 * 1.4);
@@ -7,7 +9,7 @@ function Avatar({ variant }: { variant: "self" | "other" }) {
   const alt = variant === "self" ? "我的头像" : "对方头像";
 
   return (
-    <Image
+    <img
       src={src}
       alt={alt}
       width={size}
@@ -51,7 +53,41 @@ function ChatRow({ item }: { item: ChatItem }) {
   );
 }
 
-export default function HomePage() {
+/**
+ * 微信聊天页主界面
+ *
+ * 挂载后从后端拉取 ChatItem 列表并渲染高仿微信会话 UI。
+ */
+export default function App() {
+  const [chatItems, setChatItems] = useState<ChatItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchChatItems()
+      .then((items) => {
+        if (!cancelled) {
+          setChatItems(items);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "加载失败");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
       <header className="relative z-10 flex shrink-0 items-center justify-between border-b-[0.5px] border-black/[0.05] px-3 pb-2.5 pt-3">
@@ -60,7 +96,7 @@ export default function HomePage() {
           className="-ml-1 flex h-8 w-8 items-center justify-center"
           aria-label="返回"
         >
-          <Image
+          <img
             src="/back-arrow.png"
             alt=""
             width={10}
@@ -75,7 +111,7 @@ export default function HomePage() {
           className="flex h-8 w-8 items-center justify-center"
           aria-label="更多"
         >
-          <Image
+          <img
             src="/more-icon.png"
             alt=""
             width={16}
@@ -87,19 +123,24 @@ export default function HomePage() {
       </header>
 
       <section className="-mt-px min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(0.25rem+1px)] pt-[calc(0.25rem+1px)]">
-        {chatItems.map((item, index) => (
-          <ChatRow key={`${item.kind}-${index}`} item={item} />
-        ))}
+        {loading && (
+          <p className="py-8 text-center text-[14px] text-[var(--wechat-text-secondary)]">
+            加载中…
+          </p>
+        )}
+        {error && <p className="py-8 text-center text-[14px] text-red-500">{error}</p>}
+        {!loading &&
+          !error &&
+          chatItems.map((item, index) => <ChatRow key={`${item.kind}-${index}`} item={item} />)}
       </section>
 
       <footer className="shrink-0">
-        <Image
+        <img
           src="/chat-input-bar.png"
           alt="聊天输入栏"
           width={1024}
           height={145}
           className="block h-auto w-full"
-          priority
         />
       </footer>
     </main>

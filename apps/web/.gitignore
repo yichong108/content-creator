@@ -1,9 +1,8 @@
 # Dependencies
 node_modules/
 
-# Next.js
-.next/
-out/
+# Vite
+dist/
 
 # Turbo
 .turbo/
@@ -15,9 +14,6 @@ tsconfig.tsbuildinfo
 .env
 .env.*
 !.env.example
-
-# Vercel
-.vercel
 
 # Generated screenshots
 screenshots/

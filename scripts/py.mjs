@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { userInfo } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -41,10 +42,19 @@ function resolvePython() {
 }
 
 const python = resolvePython();
+
+/** Turbo/VS Code 任务环境可能缺少 USERNAME，导致 aiomysql 在 Windows 导入失败。 */
+const env = { ...process.env };
+if (isWin && !env.USERNAME && !env.USER) {
+  env.USERNAME = userInfo().username;
+  env.USER = env.USERNAME;
+}
+
 const result = spawnSync(python, args, {
   stdio: "inherit",
   shell: false,
   cwd: apiDir,
+  env,
 });
 
 process.exit(result.status ?? 1);
