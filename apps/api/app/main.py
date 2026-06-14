@@ -9,8 +9,10 @@ from pydantic import BaseModel, Field
 from app.config import settings
 from app.db import init_db
 from app.graph.chat import chat_graph, to_langchain_messages
+from app.http import register_exception_handlers
 from app.models import chat_item as _chat_item_model  # noqa: F401
 from app.routers.chat_items import router as chat_items_router
+from app.schemas.response import ApiResponse, ok
 from app.seed.chat_items import seed_chat_items
 
 
@@ -23,6 +25,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="WeChat Bot API", version="0.1.0", lifespan=lifespan)
+register_exception_handlers(app)
 app.include_router(chat_items_router)
 
 app.add_middleware(
@@ -47,17 +50,19 @@ class ChatResponse(BaseModel):
     message: ChatMessage
 
 
-@app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+@app.get("/health", response_model=ApiResponse[dict[str, str]])
+async def health() -> ApiResponse[dict[str, str]]:
+    return ok({"status": "ok"})
 
 
-@app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
+@app.post("/api/chat", response_model=ApiResponse[ChatResponse])
+async def chat(request: ChatRequest) -> ApiResponse[ChatResponse]:
     payload = [message.model_dump() for message in request.messages]
     state = {"messages": to_langchain_messages(payload)}
     result = chat_graph.invoke(state)
     last = result["messages"][-1]
-    return ChatResponse(
-        message=ChatMessage(role="assistant", content=str(last.content)),
+    return ok(
+        ChatResponse(
+            message=ChatMessage(role="assistant", content=str(last.content)),
+        ),
     )

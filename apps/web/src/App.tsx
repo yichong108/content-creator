@@ -64,18 +64,21 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // 防止组件卸载后，数据更新导致组件重新渲染
     let cancelled = false;
 
     fetchChatItems()
-      .then((items) => {
-        if (!cancelled) {
-          setChatItems(items);
+      .then((result) => {
+        if (cancelled) {
+          return;
         }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "加载失败");
+
+        if (!result.ok) {
+          setError(result.error.message);
+          return;
         }
+
+        setChatItems(result.data);
       })
       .finally(() => {
         if (!cancelled) {

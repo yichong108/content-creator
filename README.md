@@ -84,19 +84,65 @@ pnpm typecheck  # 类型检查
 
 ## API
 
-### GET /api/chat-items
-
-返回微信聊天 mock 列表（来自 MySQL `chat_items` 表），按 `sort_order` 排序：
+所有 JSON 接口（含 `/health`）统一返回：
 
 ```json
-[
-  { "kind": "timestamp", "text": "6月7日 上午8:15" },
-  { "kind": "incoming", "text": "DeepSeek 在吗" },
-  { "kind": "outgoing", "text": "在" }
-]
+{
+  "code": 0,
+  "message": "ok",
+  "data": {}
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `code` | **业务错误码**：`0` 表示成功；失败时为 `40001`、`40101`、`42201`、`50001` 等（与 HTTP 状态码无关） |
+| `message` | 人类可读描述；成功时为 `ok`，失败时为错误原因 |
+| `data` | 业务数据；失败时为 `null` |
+
+HTTP 响应状态码（如 `401`、`422`、`500`）在响应行单独返回，表示协议/传输层结果，**不要**与 body 里的 `code` 混为一谈。
+
+### 业务错误码
+
+| 业务码 | 含义 | 常见对应 HTTP |
+|--------|------|----------------|
+| `0` | 成功 | `200` |
+| `40001` | 请求参数错误 | `400` |
+| `40101` | 未登录或登录已过期 | `401` |
+| `40301` | 没有访问权限 | `403` |
+| `40401` | 资源不存在 | `404` |
+| `42201` | 请求数据验证失败 | `422` |
+| `50001` | 服务器内部错误 | `500` |
+
+### GET /api/chat-items
+
+成功示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": [
+    { "kind": "timestamp", "text": "6月7日 上午8:15" },
+    { "kind": "incoming", "text": "DeepSeek 在吗" },
+    { "kind": "outgoing", "text": "在" }
+  ]
+}
+```
+
+失败示例（HTTP 500，业务码 `50001`）：
+
+```json
+{
+  "code": 50001,
+  "message": "服务器内部错误，请稍后重试",
+  "data": null
+}
 ```
 
 ### POST /api/chat
+
+请求体：
 
 ```json
 {
@@ -106,13 +152,17 @@ pnpm typecheck  # 类型检查
 }
 ```
 
-响应：
+成功响应：
 
 ```json
 {
-  "message": {
-    "role": "assistant",
-    "content": "你好！有什么可以帮你的？"
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "message": {
+      "role": "assistant",
+      "content": "你好！有什么可以帮你的？"
+    }
   }
 }
 ```
