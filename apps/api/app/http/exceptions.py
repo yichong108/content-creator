@@ -1,11 +1,30 @@
-"""将 FastAPI 异常统一转换为 ``ApiResponse`` JSON 格式。"""
+"""将 FastAPI 异常统一转换为 ``ApiResponse`` JSON 格式。
+
+与前端 ``request`` 约定一致：正常 API 响应（含业务失败）均返回 HTTP 200，
+由 body 中的 ``code`` 区分成败；仅网络/网关层异常由前端 ``ok: false`` 兜底。
+"""
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.schemas.error_codes import ERR_INTERNAL, ERR_VALIDATION, business_code_for_http
-from app.schemas.response import fail
+from app.schemas.response import ApiResponse, fail
+
+# 与前端约定：可解析的 envelope 响应统一使用 HTTP 200
+ENVELOPE_HTTP_STATUS = 200
+
+
+def _envelope_json(body: ApiResponse) -> JSONResponse:
+    """将 ``ApiResponse`` 序列化为 JSON 响应。
+
+    Args:
+        body: 统一响应体。
+
+    Returns:
+        HTTP 200 的 JSON 响应。
+    """
+    return JSONResponse(status_code=ENVELOPE_HTTP_STATUS, content=body.model_dump())
 
 
 def _format_validation_error(exc: RequestValidationError) -> str:
@@ -33,7 +52,8 @@ def _format_validation_error(exc: RequestValidationError) -> str:
 def register_exception_handlers(app: FastAPI) -> None:
     """注册全局异常处理器，保证错误响应符合 ``ApiResponse`` 规范。
 
-    HTTP 状态码与 body ``code``（业务错误码）分别设置，互不替代。
+    业务错误与校验失败均返回 HTTP 200 + ``code != 0`` 的 envelope，
+    便于前端 ``request`` 统一解析。
 
     Args:
         app: FastAPI 应用实例。
@@ -44,7 +64,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         detail = exc.detail
         message = detail if isinstance(detail, str) else str(detail)
         body = fail(code=business_code_for_http(exc.status_code), message=message)
-        return JSONResponse(status_code=exc.status_code, content=body.model_dump())
+        return _envelope_json(body)
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
@@ -52,9 +72,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         exc: RequestValidationError,
     ) -> JSONResponse:
         body = fail(code=ERR_VALIDATION, message=_format_validation_error(exc))
-        return JSONResponse(status_code=422, content=body.model_dump())
+        return _envelope_json(body)
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(_request: Request, _exc: Exception) -> JSONResponse:
         body = fail(code=ERR_INTERNAL, message="服务器内部错误，请稍后重试")
-        return JSONResponse(status_code=500, content=body.model_dump())
+        return _envelope_json(body)

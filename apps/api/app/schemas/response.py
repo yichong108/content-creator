@@ -12,7 +12,7 @@
 
 - ``code == 0``：业务成功，``data`` 为业务载荷
 - ``code != 0``：业务失败，``data`` 为 ``null``；``code`` 为业务错误码（见 ``error_codes``）
-- HTTP 状态码单独由响应行表达，不与 ``code`` 混用
+- 正常 API 响应（含业务失败）HTTP 状态码统一为 ``200``，由 body ``code`` 表达业务结果
 """
 
 from pydantic import BaseModel, Field

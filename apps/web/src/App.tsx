@@ -68,17 +68,17 @@ export default function App() {
     let cancelled = false;
 
     fetchChatItems()
-      .then((result) => {
+      .then((res) => {
         if (cancelled) {
           return;
         }
 
-        if (!result.ok) {
-          setError(result.error.message);
+        if (!res.ok) {
+          setError("请求失败，请稍后重试");
           return;
         }
 
-        setChatItems(result.data);
+        setChatItems(res.data?.data ?? []);
       })
       .finally(() => {
         if (!cancelled) {
