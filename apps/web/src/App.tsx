@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { ChatItem } from "@/data/chat-items";
 import { fetchChatItems } from "@/lib/api";
+import { getRequestErrorMessage } from "@/lib/request";
 
 function Avatar({ variant }: { variant: "self" | "other" }) {
   const size = Math.round(18 + 17 * 1.4);
@@ -74,11 +75,11 @@ export default function App() {
         }
 
         if (!res.ok) {
-          setError("请求失败，请稍后重试");
+          setError(getRequestErrorMessage(res));
           return;
         }
 
-        setChatItems(res.data?.data ?? []);
+        setChatItems(res.data ?? []);
       })
       .finally(() => {
         if (!cancelled) {

@@ -1,33 +1,33 @@
 /**
- * 统一后端返回的数据格式
- * 统一处理request请求的返回结果
+ * 统一后端返回的数据格式 ApiEnvelope
+ * 统一处理 request 请求的返回结果 RequestResult
  */
 
 import axios, { type AxiosRequestConfig } from "axios";
 
+import { API_SUCCESS_CODE } from "@/lib/error-codes";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 /**
- * 服务端数据格式
+ * 服务端统一响应信封格式。
  */
-export interface ApiEnvelope<T> {
-  // 业务状态，正常为0
+interface ApiEnvelope<T> {
+  /** 业务状态码，非 HTTP 状态码；成功为 {@link API_SUCCESS_CODE} */
   code: number;
-  // 业务描述
+  /** 人类可读描述 */
   message: string;
-  // 业务用到的数据
+  /** 业务数据；失败时为 null */
   data: T | null;
 }
-
-/** 业务成功码*/
-export const API_SUCCESS_CODE = 0;
 
 /**
  * 判断未知 JSON 是否符合 ApiEnvelope 结构。
  *
  * @param value - 待检查的响应体
+ * @returns 是否为合法 envelope
  */
-export function isApiEnvelope(value: unknown): value is ApiEnvelope<unknown> {
+function isApiEnvelope(value: unknown): value is ApiEnvelope<unknown> {
   return (
     value !== null &&
     typeof value === "object" &&
@@ -39,16 +39,30 @@ export function isApiEnvelope(value: unknown): value is ApiEnvelope<unknown> {
   );
 }
 
-export type RequestResult<T> =
+/** 请求失败时的联合类型（不含成功分支） */
+export type RequestFailure =
   | {
-      // 表示无网络或系统错误，正常为 true
-      ok: true;
-      // API返回的数据
-      data: ApiEnvelope<T> | null | undefined;
+      ok: false;
+      /** 断网、超时、响应体结构异常等传输层错误 */
+      kind: "network";
     }
   | {
       ok: false;
+      /** HTTP 200 但 body.code 为五位数等业务错误码 */
+      kind: "business";
+      code: number;
+      message: string;
     };
+
+/**
+ * API 请求结果：成功时直接返回业务 data，失败时区分网络与业务错误。
+ */
+export type RequestResult<T> =
+  | {
+      ok: true;
+      data: T;
+    }
+  | RequestFailure;
 
 const client = axios.create({
   baseURL: API_URL,
@@ -58,29 +72,73 @@ const client = axios.create({
 });
 
 /**
- * 发起 API 请求，参数与 axios 的 ``AxiosRequestConfig`` 一致，返回 ``ApiEnvelope<T>``。
+ * 将失败结果转为可展示的错误文案。
  *
- * @typeParam T - 业务 data 类型（对应 envelope.data 成功时的类型）
- * @param config - axios 请求配置（url、method、headers、data 等）
+ * 业务错误优先使用后端 ``message``；网络类错误使用通用提示。
+ *
+ * @param result - ``ok: false`` 的请求结果
+ * @returns 面向用户的错误描述
  */
-export function request<T>(config: AxiosRequestConfig): Promise<RequestResult<T>> {
+export function getRequestErrorMessage(result: RequestFailure): string {
+  if (result.kind === "business") {
+    return result.message;
+  }
+
+  return "网络异常，请稍后重试";
+}
+
+type RequestConfig = AxiosRequestConfig & {
+  customHandleBusinessError?: false;
+};
+
+/**
+ * 发起 API 请求。
+ *
+ * - HTTP 200 且 ``code === API_SUCCESS_CODE``：``{ ok: true, data }``
+ * - HTTP 200 且 ``code`` 为五位数等业务错误：``{ ok: false, kind: "business", code, message }``
+ * - 断网、超时、结构异常：``{ ok: false, kind: "network" }``
+ *
+ * @typeParam T - 业务 data 类型（envelope.data 成功时的类型）
+ * @param config - axios 请求配置（url、method、headers、data 等）
+ * @returns 解包后的请求结果
+ */
+export function request<T>(config: RequestConfig): Promise<RequestResult<T>> {
+  const { customHandleBusinessError = false } = config;
+
   return client
     .request(config)
     .then((response): RequestResult<T> => {
       if (!isApiEnvelope(response.data)) {
         console.error("请求出错了，接口返回数据不符合结构", response.data);
-        return { ok: false };
+        return { ok: false, kind: "network" };
+      }
+
+      const envelope = response.data as ApiEnvelope<T>;
+
+      if (response.status === 200 && envelope.code === API_SUCCESS_CODE) {
+        return { ok: true, data: envelope.data as T };
       }
 
       if (response.status === 200) {
-        return { ok: true, data: response.data as ApiEnvelope<T> };
+        console.error("业务错误", envelope.code, envelope.message);
+
+        if (!customHandleBusinessError) {
+          // 自动处理业务错误
+        }
+
+        return {
+          ok: false,
+          kind: "business",
+          code: envelope.code,
+          message: envelope.message,
+        };
       }
 
       console.error("请求出错了", response);
-      return { ok: false };
+      return { ok: false, kind: "network" };
     })
     .catch((error) => {
       console.error("请求出错了", error);
-      return { ok: false };
+      return { ok: false, kind: "network" };
     });
 }
