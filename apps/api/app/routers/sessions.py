@@ -19,7 +19,12 @@ from app.schemas.session import (
     SessionSummary,
     SessionUpdate,
 )
+from app.schemas.session_title_generate import (
+    GenerateSessionTitleRequest,
+    GenerateSessionTitleResponse,
+)
 from app.services.chat_items_generator import generate_chat_items
+from app.services.session_title_generator import generate_session_title
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +106,39 @@ async def list_sessions(db: AsyncSession = Depends(get_db)) -> ApiResponse[list[
     result = await db.execute(select(SessionRow).order_by(SessionRow.updated_at.desc()))
     rows = result.scalars().all()
     return ok([_to_summary(row) for row in rows])
+
+
+@router.post("/generate-title", response_model=ApiResponse[GenerateSessionTitleResponse])
+async def generate_session_title_endpoint(
+    payload: GenerateSessionTitleRequest,
+) -> ApiResponse[GenerateSessionTitleResponse | None]:
+    """根据描述或聊天记录自动生成会话标题。
+
+    Args:
+        payload: 含可选描述与聊天记录的请求体。
+
+    Returns:
+        统一 ``ApiResponse`` 包裹的标题字符串。
+    """
+    if not settings.openai_api_key.strip():
+        return fail(ERR_BAD_REQUEST, "未配置 OPENAI_API_KEY，请在 apps/api/.env 中设置")
+
+    description = payload.description.strip() if payload.description else None
+    chat_items = payload.chat_items if payload.chat_items else None
+
+    try:
+        title = await generate_session_title(description, chat_items)
+    except AuthenticationError:
+        return fail(ERR_BAD_REQUEST, "OPENAI_API_KEY 无效，请检查 apps/api/.env")
+    except APIConnectionError:
+        return fail(ERR_INTERNAL, "AI 服务连接失败，请稍后重试")
+    except APIStatusError as exc:
+        logger.warning("LLM API 错误: %s", exc)
+        return fail(ERR_INTERNAL, "AI 服务暂时不可用，请稍后重试")
+    except ValueError as exc:
+        return fail(ERR_INTERNAL, str(exc))
+
+    return ok(GenerateSessionTitleResponse(title=title))
 
 
 @router.post("/generate-chat-items", response_model=ApiResponse[GenerateChatItemsResponse])

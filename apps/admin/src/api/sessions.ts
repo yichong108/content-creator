@@ -84,6 +84,23 @@ export function updateSessionMobileEnabled(
 }
 
 /**
+ * 根据描述或聊天记录自动生成会话标题。
+ *
+ * @param payload - 可选描述与聊天记录，用于提炼标题
+ * @returns 生成的会话标题
+ */
+export function generateSessionTitle(payload: {
+  description?: string | null;
+  chat_items?: ChatItem[];
+}): Promise<RequestResult<{ title: string }>> {
+  return request<{ title: string }>({
+    url: "/api/admin/sessions/generate-title",
+    method: "POST",
+    data: payload,
+  });
+}
+
+/**
  * 根据标题自动生成聊天记录 JSON。
  *
  * @param title - 非空会话标题，作为对话主题

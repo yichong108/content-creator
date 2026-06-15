@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 
-import { generateChatItems } from "@/api/sessions";
+import { generateChatItems, generateSessionTitle } from "@/api/sessions";
 import type { SessionFormValues } from "@/components/session-form-types";
 import { parseChatItemsJson, stringifyChatItems } from "@/lib/chat-items";
 import { getRequestErrorMessage } from "@/lib/request";
@@ -42,7 +42,34 @@ export function SessionForm({
   const [formDescription, setFormDescription] = useState(initialValues?.description ?? "");
   const [chatItemsJson, setChatItemsJson] = useState(initialValues?.chatItemsJson ?? "[]");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
+  const [generatingTitle, setGeneratingTitle] = useState(false);
+  const [generatingChatItems, setGeneratingChatItems] = useState(false);
+
+  const generating = generatingTitle || generatingChatItems;
+
+  const handleGenerateTitle = async () => {
+    setFieldError(null);
+
+    const parsed = parseChatItemsJson(chatItemsJson);
+    const chatItems = parsed.ok && parsed.data.length > 0 ? parsed.data : undefined;
+
+    setGeneratingTitle(true);
+
+    const trimmedDescription = formDescription.trim();
+    const result = await generateSessionTitle({
+      description: trimmedDescription.length > 0 ? trimmedDescription : null,
+      chat_items: chatItems,
+    });
+
+    setGeneratingTitle(false);
+
+    if (!result.ok) {
+      setFieldError(getRequestErrorMessage(result));
+      return;
+    }
+
+    setTitle(result.data.title);
+  };
 
   const handleGenerateChatItems = async () => {
     setFieldError(null);
@@ -53,11 +80,11 @@ export function SessionForm({
       return;
     }
 
-    setGenerating(true);
+    setGeneratingChatItems(true);
 
     const result = await generateChatItems(trimmedTitle);
 
-    setGenerating(false);
+    setGeneratingChatItems(false);
 
     if (!result.ok) {
       setFieldError(getRequestErrorMessage(result));
@@ -106,8 +133,21 @@ export function SessionForm({
       {displayError ? <div className="alert alert-error">{displayError}</div> : null}
 
       <form className="card form" onSubmit={(event) => void handleSubmit(event)}>
-        <label className="form-field">
-          <span className="form-label">标题</span>
+        <div className="form-field">
+          <div className="form-label-row">
+            <span className="form-label">标题</span>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => void handleGenerateTitle()}
+              disabled={submitting || generating}
+            >
+              {generatingTitle ? "生成中…" : "自动生成"}
+            </button>
+          </div>
+          <span className="form-hint">
+            可根据描述或聊天记录自动生成；无参考信息时将随机生成场景标题
+          </span>
           <input
             className="form-input"
             value={title}
@@ -116,7 +156,7 @@ export function SessionForm({
             maxLength={200}
             required
           />
-        </label>
+        </div>
 
         <label className="form-field">
           <span className="form-label">描述</span>
@@ -138,7 +178,7 @@ export function SessionForm({
               onClick={() => void handleGenerateChatItems()}
               disabled={submitting || generating}
             >
-              {generating ? "生成中…" : "自动生成"}
+              {generatingChatItems ? "生成中…" : "自动生成"}
             </button>
           </div>
           <span className="form-hint">
