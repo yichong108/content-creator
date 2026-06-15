@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "setup": "pnpm install && node scripts/setup-api.mjs",
+    "setup:py": "node scripts/setup-api.mjs",
+    "lock:py": "node scripts/lock-api.mjs",
     "db:up": "docker compose up -d mysql",
     "db:down": "docker compose down",
     "prepare": "husky",

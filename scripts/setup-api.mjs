@@ -69,8 +69,8 @@ function main() {
   console.log(`使用 ${systemPython} 初始化 apps/api ...`);
   const venvPython = ensureVenv(systemPython);
 
-  console.log("安装 Python 依赖...");
-  run(venvPython, ["-m", "pip", "install", "-r", "requirements.txt"]);
+  console.log("安装 Python 依赖（requirements-lock.txt）...");
+  run(venvPython, ["-m", "pip", "install", "-r", "requirements-lock.txt"]);
 
   ensureEnvFile();
   console.log("Python 环境初始化完成");

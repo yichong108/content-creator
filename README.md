@@ -34,7 +34,7 @@ pnpm setup
 
 - 安装 Node 依赖（pnpm install）
 - 在 `apps/api` 创建 Python 虚拟环境 `.venv`
-- 安装 `requirements.txt` 中的 Python 包
+- 按 `requirements-lock.txt` 安装固定版本的 Python 包（由 `requirements.txt` 生成）
 - 若不存在则从 `.env.example` 复制 `.env`
 
 在 `apps/api/.env` 中配置 `OPENAI_API_KEY` 与 `DATABASE_URL`（见 `.env.example`）。
@@ -72,6 +72,12 @@ pnpm dev
 
 ```bash
 pnpm setup:py
+```
+
+修改 `apps/api/requirements.txt` 后，需重新生成锁文件并提交：
+
+```bash
+pnpm lock:py
 ```
 
 ### 4. 常用命令
