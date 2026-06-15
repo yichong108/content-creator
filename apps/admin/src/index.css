@@ -308,7 +308,11 @@ a {
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+}
+
+.form-field .form-hint {
+  margin-top: -4px;
 }
 
 .form-label {
@@ -415,6 +419,16 @@ button.link {
 .radio-option input {
   margin: 0;
   accent-color: var(--primary);
+}
+
+.config-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.config-panel .section-title {
+  margin-bottom: 0;
 }
 
 .config-panel--hidden {
