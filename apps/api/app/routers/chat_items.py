@@ -9,7 +9,7 @@ from app.models.chat_item import ChatItemRow
 from app.schemas.chat_item import ChatItem
 from app.schemas.response import ApiResponse, ok
 
-router = APIRouter(prefix="/api", tags=["chat-items"])
+router = APIRouter(tags=["chat-items"])
 
 ChatItemKind = Literal["timestamp", "system", "incoming", "outgoing"]
 
