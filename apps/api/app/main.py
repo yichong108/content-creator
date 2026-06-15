@@ -50,9 +50,15 @@ class ChatResponse(BaseModel):
     message: ChatMessage
 
 
+""" 健康检查接口 """
+
+
 @app.get("/health", response_model=ApiResponse[dict[str, str]])
 async def health() -> ApiResponse[dict[str, str]]:
     return ok({"status": "ok"})
+
+
+""" 聊天接口 """
 
 
 @app.post("/api/chat", response_model=ApiResponse[ChatResponse])

@@ -1,11 +1,44 @@
 /**
- * 统一后端返回的数据格式 ApiEnvelope
- * 统一处理 request 请求的返回结果 RequestResult
+ * 统一后端返回的数据格式 {@link ApiEnvelope}
+ * 统一处理 request 请求的返回结果 {@link RequestResult}
+ *
+ * @example request
+ * const result = await request({
+ *   url: "/api/chat",
+ *   method: "POST",
+ *   data: {
+ *     messages: [
+ *       { role: "user", content: "Hello, world!" }
+ *     ]
+ *   }
+ * });
+ *
+ * @example result
+ * {
+ *   ok: true,
+ *   data: {
+ *     message: "Hello, world!"
+ *   }
+ * }
+ *
+ * @example result
+ * {
+ *   ok: false,
+ *   kind: "network",
+ * }
+ *
+ * @example result
+ * {
+ *   ok: false,
+ *   kind: "business",
+ *   code: 40001,
+ *   message: "请求参数错误"
+ * }
  */
 
 import axios, { type AxiosRequestConfig } from "axios";
 
-import { API_SUCCESS_CODE } from "@/lib/error-codes";
+const API_SUCCESS_CODE = 0;
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
