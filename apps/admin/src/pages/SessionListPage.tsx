@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { SessionChatPreviewModal } from "@/components/SessionChatPreviewModal";
 import { formatDateTime } from "@/lib/format";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -14,6 +15,8 @@ export function SessionListPage() {
   const error = useSessionStore((state) => state.error);
   const loadSessions = useSessionStore((state) => state.loadSessions);
   const deleteSession = useSessionStore((state) => state.deleteSession);
+  const [previewSessionId, setPreviewSessionId] = useState<number | null>(null);
+  const [previewSessionTitle, setPreviewSessionTitle] = useState("");
 
   useEffect(() => {
     void loadSessions();
@@ -29,6 +32,16 @@ export function SessionListPage() {
     if (deleted) {
       void loadSessions();
     }
+  };
+
+  const handleOpenPreview = (sessionId: number, title: string) => {
+    setPreviewSessionId(sessionId);
+    setPreviewSessionTitle(title);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewSessionId(null);
+    setPreviewSessionTitle("");
   };
 
   return (
@@ -85,6 +98,13 @@ export function SessionListPage() {
                     <td>{formatDateTime(session.updated_at)}</td>
                     <td>
                       <div className="table-actions">
+                        <button
+                          type="button"
+                          className="link"
+                          onClick={() => handleOpenPreview(session.id, session.title)}
+                        >
+                          预览
+                        </button>
                         <Link className="link" to={`/sessions/${session.id}`}>
                           查看
                         </Link>
@@ -108,6 +128,13 @@ export function SessionListPage() {
           </div>
         )}
       </div>
+
+      <SessionChatPreviewModal
+        open={previewSessionId != null}
+        sessionId={previewSessionId}
+        sessionTitle={previewSessionTitle}
+        onClose={handleClosePreview}
+      />
     </section>
   );
 }

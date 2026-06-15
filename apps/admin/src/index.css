@@ -151,6 +151,23 @@ a {
   font-size: 18px;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-header .section-title {
+  margin: 0;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -312,6 +329,14 @@ a {
   text-decoration: none;
 }
 
+button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
 .link:hover {
   text-decoration: underline;
 }
@@ -376,9 +401,109 @@ a {
   background: #0f172a;
   color: #e2e8f0;
   border-radius: 8px;
+  max-height: 420px;
   overflow: auto;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.modal-overlay--no-mask {
+  background: transparent;
+  pointer-events: none;
+}
+
+.modal-overlay--no-mask .modal-panel {
+  pointer-events: auto;
+}
+
+.modal-panel {
+  width: min(100%, 420px);
+  max-height: calc(100vh - 48px);
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+}
+
+.modal-panel--preview {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.modal-close:hover {
+  color: var(--text);
+}
+
+.modal-preview-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #111827;
+}
+
+.modal-preview-iframe {
+  display: block;
+  width: 100%;
+  height: min(72vh, 780px);
+  border: none;
+  background: #ededed;
+}
+
+.modal-preview-status {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.modal-preview-status.alert-error {
+  background: var(--danger-bg);
 }
 
 @media (max-width: 900px) {

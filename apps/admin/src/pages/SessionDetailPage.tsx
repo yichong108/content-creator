@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { formatDateTime } from "@/lib/format";
@@ -25,6 +25,7 @@ export function SessionDetailPage() {
   const loadSession = useSessionStore((state) => state.loadSession);
   const deleteSession = useSessionStore((state) => state.deleteSession);
   const clearCurrentSession = useSessionStore((state) => state.clearCurrentSession);
+  const [jsonCopied, setJsonCopied] = useState(false);
 
   useEffect(() => {
     if (!Number.isFinite(sessionId) || sessionId <= 0) {
@@ -54,6 +55,16 @@ export function SessionDetailPage() {
     }
   };
 
+  const handleCopyJson = async (jsonText: string) => {
+    try {
+      await navigator.clipboard.writeText(jsonText);
+      setJsonCopied(true);
+      window.setTimeout(() => setJsonCopied(false), 2000);
+    } catch {
+      window.alert("复制失败，请手动选择 JSON 内容后复制");
+    }
+  };
+
   if (!Number.isFinite(sessionId) || sessionId <= 0) {
     return (
       <section className="page">
@@ -64,6 +75,9 @@ export function SessionDetailPage() {
       </section>
     );
   }
+
+  const chatItemsJson =
+    currentSession != null ? JSON.stringify(currentSession.chat_items, null, 2) : "";
 
   return (
     <section className="page">
@@ -136,8 +150,17 @@ export function SessionDetailPage() {
           </div>
 
           <div className="card">
-            <h2 className="section-title">JSON 数据</h2>
-            <pre className="json-block">{JSON.stringify(currentSession.chat_items, null, 2)}</pre>
+            <div className="section-header">
+              <h2 className="section-title">JSON 数据</h2>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => void handleCopyJson(chatItemsJson)}
+              >
+                {jsonCopied ? "已复制" : "复制 JSON"}
+              </button>
+            </div>
+            <pre className="json-block">{chatItemsJson}</pre>
           </div>
         </>
       ) : null}

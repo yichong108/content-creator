@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { ChatItem } from "@/data/chat-items";
+import { useChatPreviewPostMessage } from "@/hooks/useChatPreviewPostMessage";
 import { fetchChatItems } from "@/lib/api";
 import { getRequestErrorMessage } from "@/lib/request";
 
@@ -60,11 +61,21 @@ function ChatRow({ item }: { item: ChatItem }) {
  * 挂载后从后端拉取 ChatItem 列表并渲染高仿微信会话 UI。
  */
 export default function App() {
+  const preview = useChatPreviewPostMessage();
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!preview.embedded);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (preview.embedded) {
+      if (preview.received) {
+        setChatItems(preview.chatItems);
+        setLoading(false);
+        setError(null);
+      }
+      return;
+    }
+
     // 防止组件卸载后，数据更新导致组件重新渲染
     let cancelled = false;
 
@@ -90,7 +101,9 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [preview.embedded, preview.received, preview.chatItems]);
+
+  const headerTitle = preview.embedded ? preview.title : "豆包";
 
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
@@ -109,7 +122,9 @@ export default function App() {
             aria-hidden
           />
         </button>
-        <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">豆包</h1>
+        <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">
+          {headerTitle}
+        </h1>
         <button
           type="button"
           className="flex h-8 w-8 items-center justify-center"
