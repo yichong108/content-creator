@@ -4,6 +4,8 @@
 由 body 中的 ``code`` 区分成败；仅网络/网关层异常由前端 ``ok: false`` 兜底。
 """
 
+import logging
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -13,6 +15,8 @@ from app.schemas.response import ApiResponse, fail
 
 # 与前端约定：可解析的 envelope 响应统一使用 HTTP 200
 ENVELOPE_HTTP_STATUS = 200
+
+logger = logging.getLogger(__name__)
 
 
 def _envelope_json(body: ApiResponse) -> JSONResponse:
@@ -75,6 +79,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         return _envelope_json(body)
 
     @app.exception_handler(Exception)
-    async def unhandled_exception_handler(_request: Request, _exc: Exception) -> JSONResponse:
+    async def unhandled_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
+        logger.exception("未处理异常: %s", exc)
         body = fail(code=ERR_INTERNAL, message="服务器内部错误，请稍后重试")
         return _envelope_json(body)

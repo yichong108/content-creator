@@ -5,7 +5,7 @@
   "scripts": {
     "setup": "uv sync && node scripts/ensure-env.mjs",
     "lock": "uv lock",
-    "dev": "uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev": "uv run uvicorn app.main:app --reload --reload-include .env --host 0.0.0.0 --port 8000",
     "start": "uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
     "lint": "uv run ruff check .",
     "format": "uv run ruff format .",

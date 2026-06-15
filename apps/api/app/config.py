@@ -1,9 +1,15 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# 固定指向 apps/api/.env，避免从 monorepo 根目录启动时读不到配置
+_API_ROOT = Path(__file__).resolve().parent.parent
+_ENV_FILE = _API_ROOT / ".env"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore",
     )
