@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from "react";
 
+import { generateChatItems } from "@/api/sessions";
 import type { SessionFormValues } from "@/components/session-form-types";
-import { parseChatItemsJson } from "@/lib/chat-items";
+import { parseChatItemsJson, stringifyChatItems } from "@/lib/chat-items";
+import { getRequestErrorMessage } from "@/lib/request";
 import type { SessionFormPayload } from "@/types/session";
 
 interface SessionFormProps {
@@ -40,6 +42,30 @@ export function SessionForm({
   const [formDescription, setFormDescription] = useState(initialValues?.description ?? "");
   const [chatItemsJson, setChatItemsJson] = useState(initialValues?.chatItemsJson ?? "[]");
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerateChatItems = async () => {
+    setFieldError(null);
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setFieldError("请先填写标题后再自动生成聊天记录");
+      return;
+    }
+
+    setGenerating(true);
+
+    const result = await generateChatItems(trimmedTitle);
+
+    setGenerating(false);
+
+    if (!result.ok) {
+      setFieldError(getRequestErrorMessage(result));
+      return;
+    }
+
+    setChatItemsJson(stringifyChatItems(result.data.chat_items));
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -103,10 +129,20 @@ export function SessionForm({
           />
         </label>
 
-        <label className="form-field">
-          <span className="form-label">聊天记录 JSON</span>
+        <div className="form-field">
+          <div className="form-label-row">
+            <span className="form-label">聊天记录 JSON</span>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => void handleGenerateChatItems()}
+              disabled={submitting || generating}
+            >
+              {generating ? "生成中…" : "自动生成"}
+            </button>
+          </div>
           <span className="form-hint">
-            数组格式，每项包含 kind（timestamp/system/incoming/outgoing）与 text
+            数组格式，每项包含 kind（timestamp/system/incoming/outgoing）与 text；可根据标题自动生成
           </span>
           <textarea
             className="form-textarea form-textarea--code"
@@ -115,18 +151,18 @@ export function SessionForm({
             rows={16}
             spellCheck={false}
           />
-        </label>
+        </div>
 
         <div className="form-actions">
           <button
             type="button"
             className="btn btn-secondary"
             onClick={onCancel}
-            disabled={submitting}
+            disabled={submitting || generating}
           >
             取消
           </button>
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
+          <button type="submit" className="btn btn-primary" disabled={submitting || generating}>
             {submitting ? "提交中…" : submitLabel}
           </button>
         </div>

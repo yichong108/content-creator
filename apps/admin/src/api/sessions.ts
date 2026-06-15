@@ -1,4 +1,4 @@
-import type { SessionDetail, SessionFormPayload, SessionSummary } from "@/types/session";
+import type { ChatItem, SessionDetail, SessionFormPayload, SessionSummary } from "@/types/session";
 import { request, type RequestResult } from "@/lib/request";
 
 /**
@@ -62,5 +62,21 @@ export function deleteSession(sessionId: number): Promise<RequestResult<null>> {
   return request<null>({
     url: `/api/admin/sessions/${sessionId}`,
     method: "DELETE",
+  });
+}
+
+/**
+ * 根据标题自动生成聊天记录 JSON。
+ *
+ * @param title - 非空会话标题，作为对话主题
+ * @returns 生成的聊天记录数组
+ */
+export function generateChatItems(
+  title: string,
+): Promise<RequestResult<{ chat_items: ChatItem[] }>> {
+  return request<{ chat_items: ChatItem[] }>({
+    url: "/api/admin/sessions/generate-chat-items",
+    method: "POST",
+    data: { title },
   });
 }

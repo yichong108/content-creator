@@ -1,12 +1,21 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
+from openai import APIConnectionError, APIStatusError, AuthenticationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.db import get_db
 from app.models.session import SessionRow
 from app.schemas.chat_item import ChatItem
-from app.schemas.response import ApiResponse, ok
+from app.schemas.chat_items_generate import GenerateChatItemsRequest, GenerateChatItemsResponse
+from app.schemas.error_codes import ERR_BAD_REQUEST, ERR_INTERNAL
+from app.schemas.response import ApiResponse, fail, ok
 from app.schemas.session import SessionCreate, SessionDetail, SessionSummary, SessionUpdate
+from app.services.chat_items_generator import generate_chat_items
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin/sessions", tags=["admin-sessions"])
 
@@ -84,6 +93,40 @@ async def list_sessions(db: AsyncSession = Depends(get_db)) -> ApiResponse[list[
     result = await db.execute(select(SessionRow).order_by(SessionRow.updated_at.desc()))
     rows = result.scalars().all()
     return ok([_to_summary(row) for row in rows])
+
+
+@router.post("/generate-chat-items", response_model=ApiResponse[GenerateChatItemsResponse])
+async def generate_session_chat_items(
+    payload: GenerateChatItemsRequest,
+) -> ApiResponse[GenerateChatItemsResponse | None]:
+    """根据会话标题自动生成聊天记录 JSON。
+
+    Args:
+        payload: 含非空标题的请求体。
+
+    Returns:
+        统一 ``ApiResponse`` 包裹的聊天记录数组。
+    """
+    if not settings.openai_api_key.strip():
+        return fail(ERR_BAD_REQUEST, "未配置 OPENAI_API_KEY，请在 apps/api/.env 中设置")
+
+    title = payload.title.strip()
+    if not title:
+        return fail(ERR_BAD_REQUEST, "标题不能为空")
+
+    try:
+        items = await generate_chat_items(title)
+    except AuthenticationError:
+        return fail(ERR_BAD_REQUEST, "OPENAI_API_KEY 无效，请检查 apps/api/.env")
+    except APIConnectionError:
+        return fail(ERR_INTERNAL, "AI 服务连接失败，请稍后重试")
+    except APIStatusError as exc:
+        logger.warning("LLM API 错误: %s", exc)
+        return fail(ERR_INTERNAL, "AI 服务暂时不可用，请稍后重试")
+    except ValueError as exc:
+        return fail(ERR_INTERNAL, str(exc))
+
+    return ok(GenerateChatItemsResponse(chat_items=items))
 
 
 @router.get("/{session_id}", response_model=ApiResponse[SessionDetail])
