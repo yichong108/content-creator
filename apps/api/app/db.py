@@ -4,6 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
+from app.platform import fix_windows_env
+
+fix_windows_env()
 
 engine = create_async_engine(settings.database_url, echo=False, pool_pre_ping=True)
 async_session = async_sessionmaker(engine, expire_on_commit=False)
