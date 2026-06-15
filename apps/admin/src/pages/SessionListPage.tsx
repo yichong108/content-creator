@@ -71,39 +71,67 @@ export function SessionListPage() {
 
       {error ? <div className="alert alert-error">{error}</div> : null}
 
-      <div className="card">
-        {listLoading ? (
-          <p className="muted">加载中…</p>
-        ) : sessions.length === 0 ? (
-          <div className="empty-state">
-            <p className="muted">暂无会话</p>
-            <Link className="btn btn-primary" to="/sessions/new">
-              创建第一个会话
-            </Link>
-          </div>
-        ) : (
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
+      <div className="card card--flush">
+        <div className="table-toolbar">
+          <span className="table-toolbar-meta">
+            {listLoading ? "加载中…" : `共 ${sessions.length} 条会话`}
+          </span>
+        </div>
+
+        <div className="table-wrap">
+          <table className="data-table">
+            <colgroup>
+              <col className="col-id" />
+              <col className="col-title" />
+              <col className="col-desc" />
+              <col className="col-num" />
+              <col className="col-switch" />
+              <col className="col-date" />
+              <col className="col-date" />
+              <col className="col-actions" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">标题</th>
+                <th scope="col">描述</th>
+                <th scope="col">消息数</th>
+                <th scope="col">移动端</th>
+                <th scope="col">创建时间</th>
+                <th scope="col">更新时间</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listLoading ? (
                 <tr>
-                  <th>ID</th>
-                  <th>标题</th>
-                  <th>描述</th>
-                  <th>消息数</th>
-                  <th>移动端</th>
-                  <th>创建时间</th>
-                  <th>更新时间</th>
-                  <th>操作</th>
+                  <td className="table-state" colSpan={8}>
+                    正在加载会话列表…
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {sessions.map((session) => (
+              ) : sessions.length === 0 ? (
+                <tr>
+                  <td className="table-state" colSpan={8}>
+                    <div className="empty-state empty-state--table">
+                      <p className="muted">暂无会话</p>
+                      <Link className="btn btn-primary btn-sm" to="/sessions/new">
+                        创建第一个会话
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                sessions.map((session) => (
                   <tr key={session.id}>
-                    <td>{session.id}</td>
-                    <td className="cell-title">{session.title}</td>
+                    <td className="col-id">{session.id}</td>
+                    <td className="cell-title">
+                      <Link className="link" to={`/sessions/${session.id}`}>
+                        {session.title}
+                      </Link>
+                    </td>
                     <td className="cell-desc">{session.description ?? "—"}</td>
-                    <td>{session.chat_item_count}</td>
-                    <td>
+                    <td className="col-num">{session.chat_item_count}</td>
+                    <td className="col-switch">
                       <label className="switch" title="开启后 Web 端将展示此会话">
                         <input
                           type="checkbox"
@@ -119,26 +147,29 @@ export function SessionListPage() {
                         </span>
                       </label>
                     </td>
-                    <td>{formatDateTime(session.created_at)}</td>
-                    <td>{formatDateTime(session.updated_at)}</td>
-                    <td>
+                    <td className="col-date">{formatDateTime(session.created_at)}</td>
+                    <td className="col-date">{formatDateTime(session.updated_at)}</td>
+                    <td className="col-actions">
                       <div className="table-actions">
                         <button
                           type="button"
-                          className="link"
+                          className="btn btn-secondary btn-sm"
                           onClick={() => handleOpenPreview(session.id, session.title)}
                         >
                           预览
                         </button>
-                        <Link className="link" to={`/sessions/${session.id}`}>
+                        <Link className="btn btn-secondary btn-sm" to={`/sessions/${session.id}`}>
                           查看
                         </Link>
-                        <Link className="link" to={`/sessions/${session.id}/edit`}>
+                        <Link
+                          className="btn btn-secondary btn-sm"
+                          to={`/sessions/${session.id}/edit`}
+                        >
                           编辑
                         </Link>
                         <button
                           type="button"
-                          className="link link-danger"
+                          className="btn btn-danger btn-sm"
                           disabled={submitting}
                           onClick={() => void handleDelete(session.id, session.title)}
                         >
@@ -147,11 +178,11 @@ export function SessionListPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <SessionChatPreviewModal
