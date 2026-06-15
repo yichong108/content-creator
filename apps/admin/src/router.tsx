@@ -4,6 +4,7 @@ import { AdminLayout } from "@/layouts/AdminLayout";
 import { SessionCreatePage } from "@/pages/SessionCreatePage";
 import { SessionDetailPage } from "@/pages/SessionDetailPage";
 import { SessionEditPage } from "@/pages/SessionEditPage";
+import { ModelConfigPage } from "@/pages/ModelConfigPage";
 import { SessionListPage } from "@/pages/SessionListPage";
 
 /**
@@ -18,6 +19,7 @@ export function AppRouter() {
           <Route path="sessions/new" element={<SessionCreatePage />} />
           <Route path="sessions/:id/edit" element={<SessionEditPage />} />
           <Route path="sessions/:id" element={<SessionDetailPage />} />
+          <Route path="system/models" element={<ModelConfigPage />} />
           <Route path="*" element={<Navigate replace to="/" />} />
         </Route>
       </Routes>

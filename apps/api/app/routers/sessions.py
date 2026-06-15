@@ -1,16 +1,14 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-from openai import APIConnectionError, APIStatusError, AuthenticationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.db import get_db
 from app.models.session import SessionRow
 from app.schemas.chat_item import ChatItem
 from app.schemas.chat_items_generate import GenerateChatItemsRequest, GenerateChatItemsResponse
-from app.schemas.error_codes import ERR_BAD_REQUEST, ERR_INTERNAL
+from app.schemas.error_codes import ERR_BAD_REQUEST
 from app.schemas.response import ApiResponse, fail, ok
 from app.schemas.session import (
     SessionCreate,
@@ -23,6 +21,15 @@ from app.schemas.session_title_generate import (
     GenerateSessionTitleRequest,
     GenerateSessionTitleResponse,
 )
+from app.services.ai_errors import (
+    AiAuthenticationError,
+    AiConfigurationError,
+    AiConnectionError,
+    AiResponseError,
+    AiUnavailableError,
+)
+from app.services.ai_http import fail_from_ai_error
+from app.services.ai_provider import validate_ai_config
 from app.services.chat_items_generator import generate_chat_items
 from app.services.session_title_generator import generate_session_title
 
@@ -120,23 +127,24 @@ async def generate_session_title_endpoint(
     Returns:
         统一 ``ApiResponse`` 包裹的标题字符串。
     """
-    if not settings.openai_api_key.strip():
-        return fail(ERR_BAD_REQUEST, "未配置 OPENAI_API_KEY，请在 apps/api/.env 中设置")
+    validation_error = validate_ai_config()
+    if validation_error:
+        return fail_from_ai_error(AiConfigurationError(validation_error))
 
     description = payload.description.strip() if payload.description else None
     chat_items = payload.chat_items if payload.chat_items else None
 
     try:
         title = await generate_session_title(description, chat_items)
-    except AuthenticationError:
-        return fail(ERR_BAD_REQUEST, "OPENAI_API_KEY 无效，请检查 apps/api/.env")
-    except APIConnectionError:
-        return fail(ERR_INTERNAL, "AI 服务连接失败，请稍后重试")
-    except APIStatusError as exc:
-        logger.warning("LLM API 错误: %s", exc)
-        return fail(ERR_INTERNAL, "AI 服务暂时不可用，请稍后重试")
-    except ValueError as exc:
-        return fail(ERR_INTERNAL, str(exc))
+    except (
+        AiConfigurationError,
+        AiAuthenticationError,
+        AiConnectionError,
+        AiUnavailableError,
+        AiResponseError,
+        ValueError,
+    ) as exc:
+        return fail_from_ai_error(exc)
 
     return ok(GenerateSessionTitleResponse(title=title))
 
@@ -153,8 +161,9 @@ async def generate_session_chat_items(
     Returns:
         统一 ``ApiResponse`` 包裹的聊天记录数组。
     """
-    if not settings.openai_api_key.strip():
-        return fail(ERR_BAD_REQUEST, "未配置 OPENAI_API_KEY，请在 apps/api/.env 中设置")
+    validation_error = validate_ai_config()
+    if validation_error:
+        return fail_from_ai_error(AiConfigurationError(validation_error))
 
     title = payload.title.strip()
     if not title:
@@ -162,15 +171,15 @@ async def generate_session_chat_items(
 
     try:
         items = await generate_chat_items(title)
-    except AuthenticationError:
-        return fail(ERR_BAD_REQUEST, "OPENAI_API_KEY 无效，请检查 apps/api/.env")
-    except APIConnectionError:
-        return fail(ERR_INTERNAL, "AI 服务连接失败，请稍后重试")
-    except APIStatusError as exc:
-        logger.warning("LLM API 错误: %s", exc)
-        return fail(ERR_INTERNAL, "AI 服务暂时不可用，请稍后重试")
-    except ValueError as exc:
-        return fail(ERR_INTERNAL, str(exc))
+    except (
+        AiConfigurationError,
+        AiAuthenticationError,
+        AiConnectionError,
+        AiUnavailableError,
+        AiResponseError,
+        ValueError,
+    ) as exc:
+        return fail_from_ai_error(exc)
 
     return ok(GenerateChatItemsResponse(chat_items=items))
 

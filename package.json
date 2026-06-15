@@ -9,6 +9,7 @@
     "db:down": "docker compose down",
     "prepare": "husky",
     "dev": "turbo dev",
+    "dev:ui": "turbo dev --filter=web --filter=admin",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",

@@ -1,33 +1,37 @@
 from typing import TypedDict
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langchain_openai import ChatOpenAI
-from langgraph.graph import END, START, StateGraph
 
-from app.config import settings
+from app.services.ai_provider import invoke_chat
 
 
 class ChatState(TypedDict):
     messages: list[BaseMessage]
 
 
-def _build_model() -> ChatOpenAI:
-    kwargs: dict = {
-        "model": settings.openai_model,
-        "api_key": settings.openai_api_key or None,
-    }
-    if settings.openai_base_url:
-        kwargs["base_url"] = settings.openai_base_url
-    return ChatOpenAI(**kwargs)
-
-
 def chatbot_node(state: ChatState) -> ChatState:
-    model = _build_model()
-    response = model.invoke(state["messages"])
-    return {"messages": [response]}
+    """LangGraph 聊天节点：委托统一 AI 提供商生成回复。
+
+    Args:
+        state: 含 LangChain 消息列表的图状态。
+
+    Returns:
+        追加助手消息后的新状态。
+    """
+    payload = [
+        {
+            "role": "assistant" if isinstance(msg, AIMessage) else "user",
+            "content": str(msg.content),
+        }
+        for msg in state["messages"]
+    ]
+    content = invoke_chat(payload)
+    return {"messages": [AIMessage(content=content)]}
 
 
 def build_chat_graph():
+    from langgraph.graph import END, START, StateGraph
+
     graph = StateGraph(ChatState)
     graph.add_node("chatbot", chatbot_node)
     graph.add_edge(START, "chatbot")
@@ -41,6 +45,14 @@ chat_graph = build_chat_graph()
 def to_langchain_messages(
     messages: list[dict[str, str]],
 ) -> list[BaseMessage]:
+    """将 API 消息字典转为 LangChain 消息列表。
+
+    Args:
+        messages: 含 role/content 的请求消息。
+
+    Returns:
+        LangChain ``BaseMessage`` 列表。
+    """
     result: list[BaseMessage] = []
     for item in messages:
         role = item.get("role", "user")

@@ -1,12 +1,10 @@
 import asyncio
 import logging
 
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from app.config import settings
 from app.schemas.chat_item import ChatItem
+from app.services.ai_provider import get_active_config, invoke_structured_output
 
 logger = logging.getLogger(__name__)
 
@@ -41,27 +39,8 @@ class _ChatItemsOutput(BaseModel):
     items: list[ChatItem] = Field(min_length=1, description="按时间正序排列的聊天记录")
 
 
-def _build_model() -> ChatOpenAI:
-    """构建 OpenAI 兼容聊天模型实例。
-
-    为 DeepSeek 等仅支持 ``json_object`` 的提供商预留足够 ``max_tokens``，
-    避免长对话 JSON 被截断。
-
-    Returns:
-        已配置 API Key、Base URL 与模型名的 ``ChatOpenAI`` 实例。
-    """
-    kwargs: dict = {
-        "model": settings.openai_model,
-        "api_key": settings.openai_api_key or None,
-        "max_tokens": 8192,
-    }
-    if settings.openai_base_url:
-        kwargs["base_url"] = settings.openai_base_url
-    return ChatOpenAI(**kwargs)
-
-
 def _generate_chat_items_sync(title: str) -> list[ChatItem]:
-    """同步调用 LLM 生成聊天记录。
+    """同步调用当前 AI 提供商生成聊天记录。
 
     Args:
         title: 会话标题，作为对话主题。
@@ -70,21 +49,19 @@ def _generate_chat_items_sync(title: str) -> list[ChatItem]:
         校验通过的 ChatItem 列表。
 
     Raises:
-        AuthenticationError: API Key 无效。
-        APIConnectionError: 无法连接 AI 服务。
-        APIStatusError: AI 服务返回错误状态。
-        ValueError: 模型返回空结果。
+        AiConfigurationError: 配置无效。
+        AiAuthenticationError: API Key 无效。
+        AiConnectionError: 无法连接 AI 服务。
+        AiUnavailableError: AI 服务返回错误状态。
+        AiResponseError: 模型返回空结果。
     """
-    # DeepSeek 等提供商不支持 json_schema，需使用 json_object（json_mode）
-    model = _build_model().with_structured_output(_ChatItemsOutput, method="json_mode")
-    result = model.invoke(
-        [
-            SystemMessage(content=CHAT_ITEMS_GENERATION_SYSTEM_PROMPT),
-            HumanMessage(content=f"会话标题：{title}"),
-        ],
+    result = invoke_structured_output(
+        CHAT_ITEMS_GENERATION_SYSTEM_PROMPT,
+        f"会话标题：{title}",
+        _ChatItemsOutput,
     )
 
-    if not isinstance(result, _ChatItemsOutput) or len(result.items) == 0:
+    if len(result.items) == 0:
         raise ValueError("AI 未返回有效的聊天记录")
 
     return result.items
@@ -93,6 +70,9 @@ def _generate_chat_items_sync(title: str) -> list[ChatItem]:
 async def generate_chat_items(title: str) -> list[ChatItem]:
     """根据标题异步生成聊天记录。
 
+    Cursor SDK 的 Bridge 不能在 ``asyncio.to_thread`` 中首次初始化，
+    因此 cursor_sdk 提供商在主线程同步执行。
+
     Args:
         title: 已去除首尾空白的会话标题。
 
@@ -100,9 +80,13 @@ async def generate_chat_items(title: str) -> list[ChatItem]:
         生成的 ChatItem 列表。
 
     Raises:
-        AuthenticationError: API Key 无效。
-        APIConnectionError: 无法连接 AI 服务。
-        APIStatusError: AI 服务返回错误状态。
+        AiConfigurationError: 配置无效。
+        AiAuthenticationError: API Key 无效。
+        AiConnectionError: 无法连接 AI 服务。
+        AiUnavailableError: AI 服务返回错误状态。
+        AiResponseError: 模型返回空结果。
         ValueError: 模型返回空结果。
     """
+    if get_active_config().provider == "cursor_sdk":
+        return _generate_chat_items_sync(title)
     return await asyncio.to_thread(_generate_chat_items_sync, title)

@@ -103,6 +103,30 @@ a {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-group-title {
+  padding: 8px 12px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--sidebar-muted);
+}
+
+.nav-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-sublink {
+  padding-left: 20px;
+}
+
 .main {
   min-height: 0;
   padding: 32px;
@@ -357,6 +381,50 @@ button.link {
 .alert-error {
   background: var(--danger-bg);
   color: var(--danger-text);
+}
+
+.alert-success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.radio-fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.radio-group--provider {
+  gap: 16px;
+}
+
+.radio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.radio-option input {
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.config-panel--hidden {
+  display: none;
+}
+
+.ai-config-form .form-actions--page-footer {
+  justify-content: flex-start;
+  margin-top: 4px;
+  padding-top: 0;
 }
 
 .muted {

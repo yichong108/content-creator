@@ -18,6 +18,14 @@ export function AdminLayout() {
           <NavLink end className="nav-link" to="/">
             会话列表
           </NavLink>
+          <div className="nav-group">
+            <span className="nav-group-title">系统配置</span>
+            <div className="nav-sub">
+              <NavLink className="nav-link nav-sublink" to="/system/models">
+                AI配置
+              </NavLink>
+            </div>
+          </div>
         </nav>
       </aside>
       <main className="main">

@@ -2,13 +2,19 @@ import asyncio
 import logging
 
 from fastapi import APIRouter
-from openai import APIConnectionError, APIStatusError, AuthenticationError
 
-from app.config import settings
 from app.graph.chat import chat_graph, to_langchain_messages
 from app.schemas.chat import ChatMessage, ChatRequest, ChatResponse
-from app.schemas.error_codes import ERR_BAD_REQUEST, ERR_INTERNAL
-from app.schemas.response import ApiResponse, fail, ok
+from app.schemas.response import ApiResponse, ok
+from app.services.ai_errors import (
+    AiAuthenticationError,
+    AiConfigurationError,
+    AiConnectionError,
+    AiResponseError,
+    AiUnavailableError,
+)
+from app.services.ai_http import fail_from_ai_error
+from app.services.ai_provider import validate_ai_config
 
 router = APIRouter(tags=["chat"])
 logger = logging.getLogger(__name__)
@@ -16,7 +22,9 @@ logger = logging.getLogger(__name__)
 
 @router.post("/chat", response_model=ApiResponse[ChatResponse])
 async def chat(request: ChatRequest) -> ApiResponse[ChatResponse | None]:
-    """根据对话历史调用 LangGraph 聊天图，返回助手回复。
+    """根据对话历史调用聊天图，返回助手回复。
+
+    提供商由管理后台 ``ai_config.json`` 中的 ``provider`` 决定。
 
     Args:
         request: 含完整 messages 列表的请求体。
@@ -24,21 +32,24 @@ async def chat(request: ChatRequest) -> ApiResponse[ChatResponse | None]:
     Returns:
         统一 ``ApiResponse`` 包裹的助手最新消息。
     """
-    if not settings.openai_api_key.strip():
-        return fail(ERR_BAD_REQUEST, "未配置 OPENAI_API_KEY，请在 apps/api/.env 中设置")
+    validation_error = validate_ai_config()
+    if validation_error:
+        return fail_from_ai_error(AiConfigurationError(validation_error))
 
     payload = [message.model_dump() for message in request.messages]
     state = {"messages": to_langchain_messages(payload)}
 
     try:
         result = await asyncio.to_thread(chat_graph.invoke, state)
-    except AuthenticationError:
-        return fail(ERR_BAD_REQUEST, "OPENAI_API_KEY 无效，请检查 apps/api/.env")
-    except APIConnectionError:
-        return fail(ERR_INTERNAL, "AI 服务连接失败，请稍后重试")
-    except APIStatusError as exc:
-        logger.warning("LLM API 错误: %s", exc)
-        return fail(ERR_INTERNAL, "AI 服务暂时不可用，请稍后重试")
+    except (
+        AiConfigurationError,
+        AiAuthenticationError,
+        AiConnectionError,
+        AiUnavailableError,
+        AiResponseError,
+        ValueError,
+    ) as exc:
+        return fail_from_ai_error(exc)
 
     last = result["messages"][-1]
     return ok(

@@ -26,5 +26,8 @@ build/
 .env.*
 !.env.example
 
+# Runtime AI config (contains secrets)
+data/ai_config.json
+
 # Logs
 *.log

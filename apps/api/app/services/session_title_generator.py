@@ -1,11 +1,10 @@
 import asyncio
 import logging
 
-from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from app.schemas.chat_item import ChatItem
-from app.services.chat_items_generator import _build_model
+from app.services.ai_provider import get_active_config, invoke_structured_output
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +78,7 @@ def _generate_session_title_sync(
     description: str | None,
     chat_items: list[ChatItem] | None,
 ) -> str:
-    """同步调用 LLM 生成会话标题。
+    """同步调用当前 AI 提供商生成会话标题。
 
     Args:
         description: 可选会话描述。
@@ -89,21 +88,18 @@ def _generate_session_title_sync(
         校验通过的标题字符串。
 
     Raises:
-        AuthenticationError: API Key 无效。
-        APIConnectionError: 无法连接 AI 服务。
-        APIStatusError: AI 服务返回错误状态。
+        AiConfigurationError: 配置无效。
+        AiAuthenticationError: API Key 无效。
+        AiConnectionError: 无法连接 AI 服务。
+        AiUnavailableError: AI 服务返回错误状态。
+        AiResponseError: 模型返回空结果。
         ValueError: 模型返回空结果。
     """
-    model = _build_model().with_structured_output(_SessionTitleOutput, method="json_mode")
-    result = model.invoke(
-        [
-            SystemMessage(content=SESSION_TITLE_GENERATION_SYSTEM_PROMPT),
-            HumanMessage(content=_build_user_prompt(description, chat_items)),
-        ],
+    result = invoke_structured_output(
+        SESSION_TITLE_GENERATION_SYSTEM_PROMPT,
+        _build_user_prompt(description, chat_items),
+        _SessionTitleOutput,
     )
-
-    if not isinstance(result, _SessionTitleOutput):
-        raise ValueError("AI 未返回有效的会话标题")
 
     title = result.title.strip()
     if not title:
@@ -118,6 +114,9 @@ async def generate_session_title(
 ) -> str:
     """根据可选上下文异步生成会话标题。
 
+    Cursor SDK 的 Bridge 不能在 ``asyncio.to_thread`` 中首次初始化，
+    因此 cursor_sdk 提供商在主线程同步执行。
+
     Args:
         description: 可选会话描述。
         chat_items: 可选聊天记录。
@@ -126,9 +125,13 @@ async def generate_session_title(
         生成的标题字符串。
 
     Raises:
-        AuthenticationError: API Key 无效。
-        APIConnectionError: 无法连接 AI 服务。
-        APIStatusError: AI 服务返回错误状态。
+        AiConfigurationError: 配置无效。
+        AiAuthenticationError: API Key 无效。
+        AiConnectionError: 无法连接 AI 服务。
+        AiUnavailableError: AI 服务返回错误状态。
+        AiResponseError: 模型返回空结果。
         ValueError: 模型返回空结果。
     """
+    if get_active_config().provider == "cursor_sdk":
+        return _generate_session_title_sync(description, chat_items)
     return await asyncio.to_thread(_generate_session_title_sync, description, chat_items)
