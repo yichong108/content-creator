@@ -1,0 +1,28 @@
+import { NavLink, Outlet } from "react-router-dom";
+
+/**
+ * 管理后台布局，包含顶部导航与内容区。
+ */
+export function AdminLayout() {
+  return (
+    <div className="admin-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <span className="brand-mark">WB</span>
+          <div>
+            <strong>WeChat Bot</strong>
+            <span className="brand-sub">管理后台</span>
+          </div>
+        </div>
+        <nav className="nav">
+          <NavLink end className="nav-link" to="/">
+            会话列表
+          </NavLink>
+        </nav>
+      </aside>
+      <main className="main">
+        <Outlet />
+      </main>
+    </div>
+  );
+}

@@ -21,6 +21,10 @@
       "pnpm --dir apps/web exec prettier --write",
       "pnpm --dir apps/web exec eslint --fix"
     ],
+    "apps/admin/**/*.{ts,tsx,md,json}": [
+      "pnpm --dir apps/admin exec prettier --write",
+      "pnpm --dir apps/admin exec eslint --fix"
+    ],
     "apps/api/**/*.py": "node apps/api/scripts/ruff-staged.mjs"
   },
   "devDependencies": {

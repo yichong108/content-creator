@@ -1,0 +1,66 @@
+import type { SessionDetail, SessionFormPayload, SessionSummary } from "@/types/session";
+import { request, type RequestResult } from "@/lib/request";
+
+/**
+ * 获取全部会话摘要列表。
+ *
+ * @returns 会话摘要数组
+ */
+export function fetchSessions(): Promise<RequestResult<SessionSummary[]>> {
+  return request<SessionSummary[]>({ url: "/api/admin/sessions", method: "GET" });
+}
+
+/**
+ * 获取指定会话详情。
+ *
+ * @param sessionId - 会话 ID
+ * @returns 会话详情
+ */
+export function fetchSession(sessionId: number): Promise<RequestResult<SessionDetail>> {
+  return request<SessionDetail>({ url: `/api/admin/sessions/${sessionId}`, method: "GET" });
+}
+
+/**
+ * 创建新会话。
+ *
+ * @param payload - 会话表单数据
+ * @returns 新建会话详情
+ */
+export function createSession(payload: SessionFormPayload): Promise<RequestResult<SessionDetail>> {
+  return request<SessionDetail>({
+    url: "/api/admin/sessions",
+    method: "POST",
+    data: payload,
+  });
+}
+
+/**
+ * 更新指定会话。
+ *
+ * @param sessionId - 会话 ID
+ * @param payload - 会话表单数据
+ * @returns 更新后会话详情
+ */
+export function updateSession(
+  sessionId: number,
+  payload: SessionFormPayload,
+): Promise<RequestResult<SessionDetail>> {
+  return request<SessionDetail>({
+    url: `/api/admin/sessions/${sessionId}`,
+    method: "PUT",
+    data: payload,
+  });
+}
+
+/**
+ * 删除指定会话。
+ *
+ * @param sessionId - 会话 ID
+ * @returns 空数据成功响应
+ */
+export function deleteSession(sessionId: number): Promise<RequestResult<null>> {
+  return request<null>({
+    url: `/api/admin/sessions/${sessionId}`,
+    method: "DELETE",
+  });
+}

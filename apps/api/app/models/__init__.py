@@ -1,4 +1,4 @@
-from app.models import chat_item
-from app.models.chat_item import ChatItemRow
+from app.models import session
+from app.models.session import SessionRow
 
-__all__ = ["ChatItemRow", "chat_item"]
+__all__ = ["SessionRow", "session"]

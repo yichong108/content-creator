@@ -11,7 +11,7 @@
     "format": "uv run ruff format .",
     "format:check": "uv run ruff format --check .",
     "typecheck": "uv run mypy app",
-    "seed": "uv run python -m app.seed.chat_items",
-    "seed:force": "uv run python -m app.seed.chat_items --force"
+    "seed": "uv run python -m app.seed.sessions",
+    "seed:force": "uv run python -m app.seed.sessions --force"
   }
 }
