@@ -30,8 +30,8 @@ const OUT_DIR = process.env.OUT_DIR
   ? path.resolve(process.env.OUT_DIR)
   : path.join(WEB_ROOT, "screenshots", "chat");
 const VIEWPORT = {
-  width: Number(process.env.VIEWPORT_W ?? 375*2),
-  height: Number(process.env.VIEWPORT_H ?? 667*2),
+  width: Number(process.env.VIEWPORT_W ?? 375),
+  height: Number(process.env.VIEWPORT_H ?? 667),
 };
 const OVERLAP = Math.min(1, Math.max(0, Number(process.env.OVERLAP ?? 0.1)));
 const SCROLL_SETTLE_MS = 300;
