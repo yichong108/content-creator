@@ -12,6 +12,7 @@ class SessionSummary(BaseModel):
     title: str = Field(description="会话标题")
     description: str | None = Field(default=None, description="会话描述")
     chat_item_count: int = Field(description="聊天记录条数")
+    mobile_enabled: bool = Field(description="是否在移动端展示")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="更新时间")
 
@@ -36,3 +37,9 @@ class SessionUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200, description="会话标题")
     description: str | None = Field(default=None, description="会话描述")
     chat_items: list[ChatItem] | None = Field(default=None, description="聊天记录数组")
+
+
+class SessionMobileEnabledUpdate(BaseModel):
+    """更新会话移动端展示开关。"""
+
+    mobile_enabled: bool = Field(description="是否作为移动端展示会话")

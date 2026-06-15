@@ -46,6 +46,7 @@ async def seed_sessions(force: bool = False) -> int:
             title="豆包 × DeepSeek 练车记",
             description="科目二挂科后的微信聊天记录",
             chat_items=_seed_chat_items_json(),
+            mobile_enabled=True,
         )
         session.add(row)
         await session.commit()

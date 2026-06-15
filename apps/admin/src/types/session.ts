@@ -18,6 +18,7 @@ export interface SessionSummary {
   title: string;
   description: string | null;
   chat_item_count: number;
+  mobile_enabled: boolean;
   created_at: string;
   updated_at: string;
 }

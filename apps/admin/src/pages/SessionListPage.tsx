@@ -15,7 +15,9 @@ export function SessionListPage() {
   const error = useSessionStore((state) => state.error);
   const loadSessions = useSessionStore((state) => state.loadSessions);
   const deleteSession = useSessionStore((state) => state.deleteSession);
+  const setMobileEnabled = useSessionStore((state) => state.setMobileEnabled);
   const [previewSessionId, setPreviewSessionId] = useState<number | null>(null);
+  const [togglingSessionId, setTogglingSessionId] = useState<number | null>(null);
   const [previewSessionTitle, setPreviewSessionTitle] = useState("");
 
   useEffect(() => {
@@ -42,6 +44,12 @@ export function SessionListPage() {
   const handleClosePreview = () => {
     setPreviewSessionId(null);
     setPreviewSessionTitle("");
+  };
+
+  const handleMobileToggle = async (sessionId: number, nextEnabled: boolean) => {
+    setTogglingSessionId(sessionId);
+    await setMobileEnabled(sessionId, nextEnabled);
+    setTogglingSessionId(null);
   };
 
   return (
@@ -82,6 +90,7 @@ export function SessionListPage() {
                   <th>标题</th>
                   <th>描述</th>
                   <th>消息数</th>
+                  <th>移动端</th>
                   <th>创建时间</th>
                   <th>更新时间</th>
                   <th>操作</th>
@@ -94,6 +103,22 @@ export function SessionListPage() {
                     <td className="cell-title">{session.title}</td>
                     <td className="cell-desc">{session.description ?? "—"}</td>
                     <td>{session.chat_item_count}</td>
+                    <td>
+                      <label className="switch" title="开启后 Web 端将展示此会话">
+                        <input
+                          type="checkbox"
+                          checked={session.mobile_enabled}
+                          disabled={submitting && togglingSessionId === session.id}
+                          onChange={(event) =>
+                            void handleMobileToggle(session.id, event.target.checked)
+                          }
+                        />
+                        <span className="switch-slider" aria-hidden="true" />
+                        <span className="sr-only">
+                          {session.mobile_enabled ? "关闭移动端展示" : "开启移动端展示"}
+                        </span>
+                      </label>
+                    </td>
                     <td>{formatDateTime(session.created_at)}</td>
                     <td>{formatDateTime(session.updated_at)}</td>
                     <td>

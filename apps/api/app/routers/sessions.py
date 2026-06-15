@@ -12,7 +12,13 @@ from app.schemas.chat_item import ChatItem
 from app.schemas.chat_items_generate import GenerateChatItemsRequest, GenerateChatItemsResponse
 from app.schemas.error_codes import ERR_BAD_REQUEST, ERR_INTERNAL
 from app.schemas.response import ApiResponse, fail, ok
-from app.schemas.session import SessionCreate, SessionDetail, SessionSummary, SessionUpdate
+from app.schemas.session import (
+    SessionCreate,
+    SessionDetail,
+    SessionMobileEnabledUpdate,
+    SessionSummary,
+    SessionUpdate,
+)
 from app.services.chat_items_generator import generate_chat_items
 
 logger = logging.getLogger(__name__)
@@ -34,6 +40,7 @@ def _to_summary(row: SessionRow) -> SessionSummary:
         title=row.title,
         description=row.description,
         chat_item_count=len(row.chat_items),
+        mobile_enabled=row.mobile_enabled,
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
@@ -54,6 +61,7 @@ def _to_detail(row: SessionRow) -> SessionDetail:
         title=row.title,
         description=row.description,
         chat_item_count=len(chat_items),
+        mobile_enabled=row.mobile_enabled,
         created_at=row.created_at,
         updated_at=row.updated_at,
         chat_items=chat_items,
@@ -206,6 +214,39 @@ async def update_session(
     await db.commit()
     await db.refresh(row)
     return ok(_to_detail(row))
+
+
+@router.patch("/{session_id}/mobile-enabled", response_model=ApiResponse[SessionSummary])
+async def update_session_mobile_enabled(
+    session_id: int,
+    payload: SessionMobileEnabledUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[SessionSummary]:
+    """更新会话移动端展示开关，全局仅允许一个会话开启。
+
+    Args:
+        session_id: 会话 ID。
+        payload: 含 mobile_enabled 的请求体。
+        db: 异步数据库会话。
+
+    Returns:
+        统一 ``ApiResponse`` 包裹的更新后会话摘要。
+
+    Raises:
+        HTTPException: 会话不存在时返回 404。
+    """
+    row = await _get_session_row(session_id, db)
+
+    if payload.mobile_enabled:
+        result = await db.execute(select(SessionRow).where(SessionRow.mobile_enabled.is_(True)))
+        for enabled_row in result.scalars().all():
+            enabled_row.mobile_enabled = False
+
+    row.mobile_enabled = payload.mobile_enabled
+
+    await db.commit()
+    await db.refresh(row)
+    return ok(_to_summary(row))
 
 
 @router.delete("/{session_id}", response_model=ApiResponse[None])

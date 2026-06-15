@@ -6,6 +6,7 @@ import {
   fetchSession,
   fetchSessions,
   updateSession as updateSessionApi,
+  updateSessionMobileEnabled as updateSessionMobileEnabledApi,
 } from "@/api/sessions";
 import { getRequestErrorMessage } from "@/lib/request";
 import type { SessionDetail, SessionFormPayload, SessionSummary } from "@/types/session";
@@ -33,6 +34,8 @@ interface SessionState {
   updateSession: (sessionId: number, payload: SessionFormPayload) => Promise<SessionDetail | null>;
   /** 删除会话 */
   deleteSession: (sessionId: number) => Promise<boolean>;
+  /** 更新移动端展示开关 */
+  setMobileEnabled: (sessionId: number, mobileEnabled: boolean) => Promise<boolean>;
   /** 清空当前详情 */
   clearCurrentSession: () => void;
   /** 清空错误信息 */
@@ -97,6 +100,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   deleteSession: async (sessionId: number) => {
     set({ submitting: true, error: null });
     const result = await deleteSessionApi(sessionId);
+    if (result.ok) {
+      set({ submitting: false });
+      await get().loadSessions();
+      return true;
+    }
+    set({ submitting: false, error: getRequestErrorMessage(result) });
+    return false;
+  },
+
+  setMobileEnabled: async (sessionId: number, mobileEnabled: boolean) => {
+    set({ submitting: true, error: null });
+    const result = await updateSessionMobileEnabledApi(sessionId, mobileEnabled);
     if (result.ok) {
       set({ submitting: false });
       await get().loadSessions();

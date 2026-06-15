@@ -66,6 +66,24 @@ export function deleteSession(sessionId: number): Promise<RequestResult<null>> {
 }
 
 /**
+ * 更新会话移动端展示开关。
+ *
+ * @param sessionId - 会话 ID
+ * @param mobileEnabled - 是否开启移动端展示
+ * @returns 更新后的会话摘要
+ */
+export function updateSessionMobileEnabled(
+  sessionId: number,
+  mobileEnabled: boolean,
+): Promise<RequestResult<SessionSummary>> {
+  return request<SessionSummary>({
+    url: `/api/admin/sessions/${sessionId}/mobile-enabled`,
+    method: "PATCH",
+    data: { mobile_enabled: mobileEnabled },
+  });
+}
+
+/**
  * 根据标题自动生成聊天记录 JSON。
  *
  * @param title - 非空会话标题，作为对话主题

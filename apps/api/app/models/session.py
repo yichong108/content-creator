@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, BigInteger, DateTime, String, Text, func
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -15,6 +15,12 @@ class SessionRow(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     chat_items: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
+    mobile_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
