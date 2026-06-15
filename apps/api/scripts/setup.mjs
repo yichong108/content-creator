@@ -58,6 +58,15 @@ function ensureVenv(systemPython) {
   return venvPython;
 }
 
+/**
+ * 初始化 Python 环境
+ * 1. 检查系统是否安装 Python 3.12+
+ * 2. 创建 Python 虚拟环境
+ * 3. 安装 Python 依赖
+ * 4. 创建 .env 文件
+ * 5. 初始化完成
+ * @returns {void}
+ */
 function main() {
   const systemPython = findSystemPython();
   if (!systemPython) {
