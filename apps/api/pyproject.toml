@@ -1,3 +1,28 @@
+[project]
+name = "wechat-bot-api"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0,<1.0",
+    "uvicorn[standard]>=0.34.0,<1.0",
+    "langgraph>=0.4.0,<1.0",
+    "langchain-openai>=0.3.0,<1.0",
+    "langchain-core>=0.3.0,<1.0",
+    "pydantic>=2.11.0,<3.0",
+    "pydantic-settings>=2.9.0,<3.0",
+    "python-dotenv>=1.1.0,<2.0",
+    "httpx>=0.28.0,<1.0",
+    "sqlalchemy[asyncio]>=2.0.0,<3.0",
+    "aiomysql>=0.2.0,<1.0",
+    "cryptography>=44.0.0,<46.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.0,<1.0",
+    "mypy>=1.15.0,<2.0",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"

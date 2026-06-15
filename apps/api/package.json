@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "setup": "node scripts/setup.mjs",
-    "lock": "node scripts/lock.mjs",
-    "dev": "node scripts/py.mjs -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
-    "start": "node scripts/py.mjs -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
-    "lint": "node scripts/py.mjs -m ruff check .",
-    "format": "node scripts/py.mjs -m ruff format .",
-    "format:check": "node scripts/py.mjs -m ruff format --check .",
-    "typecheck": "node scripts/py.mjs -m mypy app",
-    "seed": "node scripts/py.mjs -m app.seed.chat_items",
-    "seed:force": "node scripts/py.mjs -m app.seed.chat_items --force"
+    "setup": "uv sync && node scripts/ensure-env.mjs",
+    "lock": "uv lock",
+    "dev": "uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "start": "uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "lint": "uv run ruff check .",
+    "format": "uv run ruff format .",
+    "format:check": "uv run ruff format --check .",
+    "typecheck": "uv run mypy app",
+    "seed": "uv run python -m app.seed.chat_items",
+    "seed:force": "uv run python -m app.seed.chat_items --force"
   }
 }

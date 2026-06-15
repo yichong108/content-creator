@@ -7,7 +7,7 @@
 | 目录 | 技术 | 说明 |
 |------|------|------|
 | `apps/web` | React 19 + Vite + Tailwind CSS | 前端聊天 UI |
-| `apps/api` | Python + FastAPI + LangGraph | AI 对话 API |
+| `apps/api` | Python + FastAPI + LangGraph + [uv](https://docs.astral.sh/uv/) | AI 对话 API |
 | 根目录 | pnpm + Turborepo | Monorepo 管理 |
 
 ## 目录结构
@@ -22,6 +22,21 @@ wechat-bot/
 └── turbo.json
 ```
 
+## 前置要求
+
+- Node.js >= 20、pnpm
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)（管理 Python 版本与依赖）
+
+  ```powershell
+  # Windows
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  ```
+
+  ```bash
+  # macOS / Linux
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+
 ## 快速开始
 
 ### 1. 初始化项目（首次克隆后执行）
@@ -33,8 +48,7 @@ pnpm setup
 该命令会依次完成：
 
 - 安装 Node 依赖（pnpm install）
-- 在 `apps/api` 创建 Python 虚拟环境 `.venv`
-- 按 `requirements-lock.txt` 安装固定版本的 Python 包（由 `requirements.txt` 生成）
+- 用 uv 创建 `.venv` 并安装 `pyproject.toml` 中的 Python 依赖（版本锁定在 `uv.lock`）
 - 若不存在则从 `.env.example` 复制 `.env`
 
 在 `apps/api/.env` 中配置 `OPENAI_API_KEY` 与 `DATABASE_URL`（见 `.env.example`）。
@@ -74,7 +88,7 @@ pnpm dev
 pnpm setup:py
 ```
 
-修改 `apps/api/requirements.txt` 后，需重新生成锁文件并提交：
+修改 `apps/api/pyproject.toml` 中的依赖后，需重新生成锁文件并提交：
 
 ```bash
 pnpm lock:py

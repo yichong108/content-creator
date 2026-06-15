@@ -7,13 +7,14 @@ if (files.length === 0) {
   process.exit(0);
 }
 
+const apiDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const apiFiles = files.map((file) => file.replace(/^apps\/api\//, ""));
-const pyScript = join(dirname(fileURLToPath(import.meta.url)), "py.mjs");
 
 function runRuff(args) {
-  const result = spawnSync("node", [pyScript, "-m", "ruff", ...args, ...apiFiles], {
+  const result = spawnSync("uv", ["run", "ruff", ...args, ...apiFiles], {
     stdio: "inherit",
     shell: false,
+    cwd: apiDir,
   });
   return result.status ?? 1;
 }
