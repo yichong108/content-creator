@@ -2,9 +2,9 @@
   "name": "wechat-bot",
   "private": true,
   "scripts": {
-    "setup": "pnpm install && node scripts/setup-api.mjs",
-    "setup:py": "node scripts/setup-api.mjs",
-    "lock:py": "node scripts/lock-api.mjs",
+    "setup": "pnpm install && pnpm --dir apps/api setup",
+    "setup:py": "pnpm --dir apps/api setup",
+    "lock:py": "pnpm --dir apps/api lock",
     "db:up": "docker compose up -d mysql",
     "db:down": "docker compose down",
     "prepare": "husky",
@@ -21,7 +21,7 @@
       "pnpm --dir apps/web exec prettier --write",
       "pnpm --dir apps/web exec eslint --fix"
     ],
-    "apps/api/**/*.py": "node scripts/ruff-staged.mjs"
+    "apps/api/**/*.py": "node apps/api/scripts/ruff-staged.mjs"
   },
   "devDependencies": {
     "husky": "^9.1.7",

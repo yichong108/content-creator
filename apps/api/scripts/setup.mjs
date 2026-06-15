@@ -1,20 +1,15 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { copyFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = join(__dirname, "..");
-const apiDir = join(root, "apps", "api");
+const apiDir = join(__dirname, "..");
 const venvDir = join(apiDir, ".venv");
 const isWin = process.platform === "win32";
 
 function pythonInVenv() {
   return join(venvDir, isWin ? "Scripts/python.exe" : "bin/python");
-}
-
-function pipCompileInVenv() {
-  return join(venvDir, isWin ? "Scripts/pip-compile.exe" : "bin/pip-compile");
 }
 
 function findSystemPython() {
@@ -40,27 +35,27 @@ function run(cmd, args, options = {}) {
   }
 }
 
+function ensureEnvFile() {
+  const envFile = join(apiDir, ".env");
+  const envExample = join(apiDir, ".env.example");
+
+  if (!existsSync(envFile) && existsSync(envExample)) {
+    copyFileSync(envExample, envFile);
+    console.log("已创建 .env，请配置 OPENAI_API_KEY");
+  }
+}
+
 function ensureVenv(systemPython) {
   const venvPython = pythonInVenv();
 
   if (existsSync(venvPython)) {
+    console.log("Python 虚拟环境已存在，跳过创建");
     return venvPython;
   }
 
   console.log("创建 Python 虚拟环境...");
   run(systemPython, ["-m", "venv", ".venv"]);
   return venvPython;
-}
-
-function ensurePipTools(venvPython) {
-  const pipCompile = pipCompileInVenv();
-  if (existsSync(pipCompile)) {
-    return pipCompile;
-  }
-
-  console.log("安装 pip-tools...");
-  run(venvPython, ["-m", "pip", "install", "pip-tools"]);
-  return pipCompile;
 }
 
 function main() {
@@ -70,18 +65,14 @@ function main() {
     process.exit(1);
   }
 
+  console.log(`使用 ${systemPython} 初始化 Python 环境...`);
   const venvPython = ensureVenv(systemPython);
-  const pipCompile = ensurePipTools(venvPython);
 
-  console.log("根据 requirements.txt 生成 requirements-lock.txt ...");
-  run(pipCompile, [
-    "requirements.txt",
-    "-o",
-    "requirements-lock.txt",
-    "--strip-extras",
-  ]);
+  console.log("安装 Python 依赖（requirements-lock.txt）...");
+  run(venvPython, ["-m", "pip", "install", "-r", "requirements-lock.txt"]);
 
-  console.log("Python 依赖锁文件已更新");
+  ensureEnvFile();
+  console.log("Python 环境初始化完成");
 }
 
 main();
