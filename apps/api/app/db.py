@@ -1,3 +1,7 @@
+"""
+数据库初始化、会话获取、会话移动端展示开关更新、会话删除等操作。
+"""
+
 from collections.abc import AsyncGenerator
 
 from sqlalchemy import select, text
@@ -48,16 +52,22 @@ async def _ensure_mobile_enabled_column() -> None:
 
 
 async def _ensure_default_mobile_session() -> None:
-    """若库中尚无移动端会话，则启用最近更新的会话。"""
+    """
+    处理关于移动端获取一条会话记录的逻辑：
+    若库中尚无移动端会话，则启用最近更新的会话。
+    """
+    # 导入 SessionRow 模型
     from app.models.session import SessionRow
 
     async with async_session() as session:
         enabled_result = await session.execute(
             select(SessionRow).where(SessionRow.mobile_enabled.is_(True)).limit(1)
         )
+        # 如果存在移动端会话，则直接返回
         if enabled_result.scalar_one_or_none() is not None:
             return
 
+        # 查询最近更新的会话
         latest_result = await session.execute(
             select(SessionRow).order_by(SessionRow.updated_at.desc()).limit(1)
         )
@@ -66,6 +76,7 @@ async def _ensure_default_mobile_session() -> None:
             return
 
         row.mobile_enabled = True
+        # 提交事务
         await session.commit()
 
 

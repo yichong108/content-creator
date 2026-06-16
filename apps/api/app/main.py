@@ -21,6 +21,7 @@ from app.services.cursor_bridge import ensure_cursor_bridge, shutdown_cursor_bri
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """应用启动时建表并在空库时导入初始会话数据。"""
     await init_db()
+    # TODO 不需要初始会话数据，前端来创建会话
     await seed_sessions()
     ensure_cursor_bridge()
     yield
@@ -28,13 +29,18 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="WeChat Bot API", version="0.1.0", lifespan=lifespan)
+
+# 注册异常处理
 register_exception_handlers(app)
+
+# 注册路由
 app.include_router(health_router)
 app.include_router(chat_items_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(sessions_router, prefix="/api")
 app.include_router(ai_config_router, prefix="/api")
 
+# 注册 CORS 中间件
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
