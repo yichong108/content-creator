@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { WechatMessageText } from "@/components/WechatMessageText";
 import type { ChatItem } from "@/data/chat-items";
 import { useChatPreviewPostMessage } from "@/hooks/useChatPreviewPostMessage";
 import { fetchChatItems } from "@/lib/api";
@@ -42,7 +43,9 @@ function ChatRow({ item }: { item: ChatItem }) {
     return (
       <div className="flex items-start gap-[var(--wechat-avatar-gap)] py-1.5">
         <Avatar variant="other" />
-        <div className="wechat-bubble-in">{item.text}</div>
+        <div className="wechat-bubble-in">
+          <WechatMessageText text={item.text} />
+        </div>
       </div>
     );
   }
@@ -50,7 +53,9 @@ function ChatRow({ item }: { item: ChatItem }) {
   return (
     <div className="flex flex-row-reverse items-start gap-[var(--wechat-avatar-gap)] py-1.5">
       <Avatar variant="self" />
-      <div className="wechat-bubble-out">{item.text}</div>
+      <div className="wechat-bubble-out">
+        <WechatMessageText text={item.text} />
+      </div>
     </div>
   );
 }

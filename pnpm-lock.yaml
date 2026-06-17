@@ -89,6 +89,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.2.7(react@19.2.7)
+      wechat-emoji-renderer:
+        specifier: ^1.0.0
+        version: 1.0.0(react@19.2.7)
     devDependencies:
       '@eslint/js':
         specifier: ^9.28.0
@@ -1756,6 +1759,17 @@ packages:
       yaml:
         optional: true
 
+  wechat-emoji-renderer@1.0.0:
+    resolution: {integrity: sha512-tOUmkZf9ZXaGrroy/CxPkmEmP1jaRDAEex/VM5JThSOqVtEFIbFPBuNRzOR4bNIxI4vWsZXwilKMoli2EokY5g==}
+    peerDependencies:
+      react: '>=16.8.0'
+      vue: '>=3.0.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      vue:
+        optional: true
+
   which@2.0.1:
     resolution: {integrity: sha512-N7GBZOTswtB9lkQBZA4+zAXrjEIWAUOB93AvzUiudRzRxhUdLURQ7D/gAIMY1gatT/LTbmbcv8SiYazy3eYB7w==}
     engines: {node: '>= 8'}
@@ -3256,6 +3270,10 @@ snapshots:
       jiti: 2.7.0
       lightningcss: 1.32.0
       yaml: 2.9.0
+
+  wechat-emoji-renderer@1.0.0(react@19.2.7):
+    optionalDependencies:
+      react: 19.2.7
 
   which@2.0.1:
     dependencies:

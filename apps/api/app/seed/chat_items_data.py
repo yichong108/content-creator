@@ -16,7 +16,7 @@ SEED_ITEMS: list[ChatItemSeed] = [
     ("outgoing", "一丢丢也是挂"),
     ("outgoing", "系统不认人情"),
     ("incoming", "你说话好冷"),
-    ("incoming", "我都快哭了"),
+    ("incoming", "我都快哭了[大哭]"),
     ("outgoing", "哭没用"),
     ("outgoing", "补考约上了吗"),
     ("incoming", "约了"),

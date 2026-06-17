@@ -33,7 +33,9 @@
   --wechat-font: -apple-system-font, BlinkMacSystemFont, "Helvetica Neue",
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei",
     Arial, sans-serif;
+
 }
+
 
 body {
   background: var(--wechat-bg);
@@ -64,6 +66,9 @@ body {
   color: var(--wechat-text);
   word-break: break-word;
   border-radius: 6px;
+  --wechat-emoji-size: 22px;
+  --wechat-emoji-margin-x: -0.04em;
+  --wechat-emoji-top: 0;
 }
 
 .wechat-bubble-in {
@@ -96,4 +101,23 @@ body {
   background: var(--wechat-bubble-self);
   border-radius: var(--wechat-bubble-tail-radius);
   transform: rotate(45deg);
+}
+
+.wechat-message-text {
+  white-space: pre-wrap;
+  line-height: inherit;
+}
+
+.wechat-emoji {
+  flex-shrink: 0;
+  width: var(--wechat-emoji-size);
+  height: var(--wechat-emoji-size);
+  margin-inline: var(--wechat-emoji-margin-x);
+  top: var(--wechat-emoji-top);
+  vertical-align: text-bottom;
+}
+
+.wechat-emoji__inner {
+  pointer-events: none;
+  image-rendering: -webkit-optimize-contrast;
 }
