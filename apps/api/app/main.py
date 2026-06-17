@@ -13,16 +13,13 @@ from app.routers.chat import router as chat_router
 from app.routers.chat_items import router as chat_items_router
 from app.routers.health import router as health_router
 from app.routers.sessions import router as sessions_router
-from app.seed.sessions import seed_sessions
 from app.services.cursor_bridge import ensure_cursor_bridge, shutdown_cursor_bridge
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """应用启动时建表并在空库时导入初始会话数据。"""
+    """应用启动时建表并初始化 Cursor Bridge。"""
     await init_db()
-    # TODO 不需要初始会话数据，前端来创建会话
-    await seed_sessions()
     ensure_cursor_bridge()
     yield
     shutdown_cursor_bridge()

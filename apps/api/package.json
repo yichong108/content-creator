@@ -10,8 +10,6 @@
     "lint": "uv run ruff check .",
     "format": "uv run ruff format .",
     "format:check": "uv run ruff format --check .",
-    "typecheck": "uv run mypy app",
-    "seed": "uv run python -m app.seed.sessions",
-    "seed:force": "uv run python -m app.seed.sessions --force"
+    "typecheck": "uv run mypy app"
   }
 }

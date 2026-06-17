@@ -63,11 +63,7 @@ pnpm db:up
 
 默认连接串：`mysql+aiomysql://wechat:wechat@127.0.0.1:3307/wechat_bot`（Docker 映射到宿主机 **3307**，避免与本机已有 MySQL 的 3306 冲突）
 
-首次启动 API 时会自动建表；若表为空，会导入初始聊天数据。也可手动执行：
-
-```bash
-pnpm --dir apps/api seed
-```
+首次启动 API 时会自动建表。
 
 ### 3. 启动开发服务
 
