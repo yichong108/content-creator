@@ -6,6 +6,7 @@ import { LiveSessionDetailPage } from "@/pages/LiveSessionDetailPage";
 import { LiveSessionEditPage } from "@/pages/LiveSessionEditPage";
 import { LiveSessionListPage } from "@/pages/LiveSessionListPage";
 import { ModelConfigPage } from "@/pages/ModelConfigPage";
+import { NpcManagementPage } from "@/pages/NpcManagementPage";
 import { SessionCreatePage } from "@/pages/SessionCreatePage";
 import { SessionDetailPage } from "@/pages/SessionDetailPage";
 import { SessionEditPage } from "@/pages/SessionEditPage";
@@ -28,6 +29,7 @@ export function AppRouter() {
           <Route path="live-sessions/:id" element={<LiveSessionDetailPage />} />
           <Route path="live-sessions" element={<LiveSessionListPage />} />
           <Route path="system/models" element={<ModelConfigPage />} />
+          <Route path="npcs" element={<NpcManagementPage />} />
           <Route path="*" element={<Navigate replace to="/" />} />
         </Route>
       </Routes>

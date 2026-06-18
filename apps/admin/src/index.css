@@ -697,6 +697,62 @@ button.link {
   flex-direction: column;
 }
 
+.modal-panel--form {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 520px);
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal-form {
+  gap: 0;
+}
+
+.modal-form .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+}
+
+.detail-item {
+  margin: 0;
+}
+
+.detail-item dt {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.detail-item dd {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.detail-text {
+  white-space: pre-wrap;
+}
+
 .modal-header {
   display: flex;
   align-items: flex-start;
