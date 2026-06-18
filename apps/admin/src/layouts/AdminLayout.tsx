@@ -18,6 +18,9 @@ export function AdminLayout() {
           <NavLink end className="nav-link" to="/">
             会话列表
           </NavLink>
+          <NavLink className="nav-link" to="/live-sessions">
+            直播会话
+          </NavLink>
           <div className="nav-group">
             <span className="nav-group-title">系统配置</span>
             <div className="nav-sub">
