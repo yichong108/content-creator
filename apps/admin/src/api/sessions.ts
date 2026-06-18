@@ -1,4 +1,5 @@
-import type { ChatItem, SessionDetail, SessionFormPayload, SessionSummary } from "@/types/session";
+import type { ChatItem } from "@/types/chat-item";
+import type { SessionDetail, SessionFormPayload, SessionSummary } from "@/types/session";
 import { request, type RequestResult } from "@/lib/request";
 
 /**

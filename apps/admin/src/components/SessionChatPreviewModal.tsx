@@ -9,7 +9,7 @@ import {
   parseChatPreviewMessage,
 } from "@/lib/chat-preview-message";
 import { getRequestErrorMessage, type RequestResult } from "@/lib/request";
-import type { ChatItem } from "@/types/session";
+import type { ChatItem } from "@/types/chat-item";
 
 interface SessionPreviewDetail {
   chat_items: ChatItem[];

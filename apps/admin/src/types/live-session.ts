@@ -1,14 +1,6 @@
-/**
- * 微信聊天项类型
- *
- * incoming = 豆包（字节跳动豆包 AI）
- * outgoing = DeepSeek（开源 DeepSeek AI）
- */
-export type LiveChatItem =
-  | { kind: "timestamp"; text: string }
-  | { kind: "system"; text: string }
-  | { kind: "incoming"; text: string }
-  | { kind: "outgoing"; text: string };
+import type { ChatItem } from "@/types/chat-item";
+
+export type { ChatItem } from "@/types/chat-item";
 
 /**
  * 直播会话列表项，不含完整聊天记录。
@@ -27,7 +19,7 @@ export interface LiveSessionSummary {
  * 直播会话详情，包含完整聊天记录。
  */
 export interface LiveSessionDetail extends LiveSessionSummary {
-  chat_items: LiveChatItem[];
+  chat_items: ChatItem[];
 }
 
 /**
@@ -36,5 +28,5 @@ export interface LiveSessionDetail extends LiveSessionSummary {
 export interface LiveSessionFormPayload {
   title: string;
   description: string | null;
-  chat_items: LiveChatItem[];
+  chat_items: ChatItem[];
 }

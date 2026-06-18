@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import { generateChatItems, generateSessionTitle } from "@/api/sessions";
-import type { SessionFormValues } from "@/components/session-form-types";
+import type { ChatSessionFormValues } from "@/components/chat-session-form-types";
 import { parseChatItemsJson, stringifyChatItems } from "@/lib/chat-items";
 import { getRequestErrorMessage } from "@/lib/request";
 import type { SessionFormPayload } from "@/types/session";
@@ -12,7 +12,7 @@ interface SessionFormProps {
   /** 表单说明 */
   description?: string;
   /** 初始值 */
-  initialValues?: Partial<SessionFormValues>;
+  initialValues?: Partial<ChatSessionFormValues>;
   /** 是否提交中 */
   submitting: boolean;
   /** 服务端或校验错误 */

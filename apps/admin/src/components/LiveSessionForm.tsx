@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import { generateLiveChatItems, generateLiveSessionTitle } from "@/api/live-sessions";
-import type { LiveSessionFormValues } from "@/components/live-session-form-types";
+import type { ChatSessionFormValues } from "@/components/chat-session-form-types";
 import { parseChatItemsJson, stringifyChatItems } from "@/lib/chat-items";
 import { getRequestErrorMessage } from "@/lib/request";
 import type { LiveSessionFormPayload } from "@/types/live-session";
@@ -12,7 +12,7 @@ interface LiveSessionFormProps {
   /** 表单说明 */
   description?: string;
   /** 初始值 */
-  initialValues?: Partial<LiveSessionFormValues>;
+  initialValues?: Partial<ChatSessionFormValues>;
   /** 是否提交中 */
   submitting: boolean;
   /** 服务端或校验错误 */

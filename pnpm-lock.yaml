@@ -20,6 +20,9 @@ importers:
 
   apps/admin:
     dependencies:
+      '@wechat-bot/chat-item':
+        specifier: workspace:*
+        version: link:../../packages/chat-item
       axios:
         specifier: ^1.17.0
         version: 1.17.0
@@ -80,6 +83,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@wechat-bot/chat-item':
+        specifier: workspace:*
+        version: link:../../packages/chat-item
       axios:
         specifier: ^1.17.0
         version: 1.17.0
@@ -144,6 +150,12 @@ importers:
       vite:
         specifier: ^6.3.5
         version: 6.4.3(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0)
+
+  packages/chat-item:
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
 
 packages:
 

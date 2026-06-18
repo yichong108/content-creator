@@ -1,4 +1,4 @@
-import type { ChatItem } from "@/types/session";
+import type { ChatItem } from "@/types/chat-item";
 
 /** postMessage 协议标识，用于过滤无关消息 */
 export const CHAT_PREVIEW_MESSAGE_SOURCE = "wechat-bot" as const;

@@ -1,8 +1,4 @@
-import type { ChatItem } from "@/types/session";
-
-const CHAT_ITEM_KINDS = ["timestamp", "system", "incoming", "outgoing"] as const;
-
-type ChatItemKind = (typeof CHAT_ITEM_KINDS)[number];
+import { CHAT_ITEM_KINDS, type ChatItem, type ChatItemKind } from "@wechat-bot/chat-item";
 
 export type ParseChatItemsResult = { ok: true; data: ChatItem[] } | { ok: false; message: string };
 

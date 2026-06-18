@@ -1,5 +1,5 @@
+import type { ChatItem } from "@/types/chat-item";
 import type {
-  LiveChatItem,
   LiveSessionDetail,
   LiveSessionFormPayload,
   LiveSessionSummary,
@@ -101,7 +101,7 @@ export function updateLiveSessionEnabled(
  */
 export function generateLiveSessionTitle(payload: {
   description?: string | null;
-  chat_items?: LiveChatItem[];
+  chat_items?: ChatItem[];
 }): Promise<RequestResult<{ title: string }>> {
   return request<{ title: string }>({
     url: "/api/admin/live-sessions/generate-title",
@@ -118,8 +118,8 @@ export function generateLiveSessionTitle(payload: {
  */
 export function generateLiveChatItems(
   title: string,
-): Promise<RequestResult<{ chat_items: LiveChatItem[] }>> {
-  return request<{ chat_items: LiveChatItem[] }>({
+): Promise<RequestResult<{ chat_items: ChatItem[] }>> {
+  return request<{ chat_items: ChatItem[] }>({
     url: "/api/admin/live-sessions/generate-chat-items",
     method: "POST",
     data: { title },
