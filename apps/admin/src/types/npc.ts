@@ -7,6 +7,8 @@ export interface NpcSummary {
   name: string;
   /** 人设描述 */
   persona_description: string;
+  /** 标签列表 */
+  tags: string[];
   created_at: string;
   updated_at: string;
 }
@@ -17,4 +19,5 @@ export interface NpcSummary {
 export interface NpcFormPayload {
   name: string;
   persona_description: string;
+  tags: string[];
 }

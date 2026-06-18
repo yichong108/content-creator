@@ -753,6 +753,29 @@ button.link {
   white-space: pre-wrap;
 }
 
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.col-tags,
+.cell-tags {
+  min-width: 120px;
+  max-width: 220px;
+}
+
 .modal-header {
   display: flex;
   align-items: flex-start;

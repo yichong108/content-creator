@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { NpcModal } from "@/components/NpcModal";
+import { NpcTagList } from "@/components/NpcTagList";
 import { formatDateTime } from "@/lib/format";
 import { useNpcStore } from "@/stores/npc-store";
 import type { NpcFormPayload, NpcSummary } from "@/types/npc";
@@ -133,6 +134,7 @@ export function NpcManagementPage() {
           <table className="data-table">
             <colgroup>
               <col className="col-title" />
+              <col className="col-tags" />
               <col className="col-desc" />
               <col className="col-date" />
               <col className="col-date" />
@@ -141,6 +143,7 @@ export function NpcManagementPage() {
             <thead>
               <tr>
                 <th scope="col">NPC名称</th>
+                <th scope="col">标签</th>
                 <th scope="col">人设描述</th>
                 <th scope="col">创建时间</th>
                 <th scope="col">更新时间</th>
@@ -150,13 +153,13 @@ export function NpcManagementPage() {
             <tbody>
               {listLoading ? (
                 <tr>
-                  <td className="table-state" colSpan={5}>
+                  <td className="table-state" colSpan={6}>
                     正在加载 NPC 列表…
                   </td>
                 </tr>
               ) : npcs.length === 0 ? (
                 <tr>
-                  <td className="table-state" colSpan={5}>
+                  <td className="table-state" colSpan={6}>
                     <div className="empty-state empty-state--table">
                       <p className="muted">暂无 NPC</p>
                       <button
@@ -173,6 +176,9 @@ export function NpcManagementPage() {
                 npcs.map((npc) => (
                   <tr key={npc.id}>
                     <td className="cell-title">{npc.name}</td>
+                    <td className="cell-tags">
+                      <NpcTagList tags={npc.tags ?? []} />
+                    </td>
                     <td className="cell-desc">{npc.persona_description}</td>
                     <td className="col-date">{formatDateTime(npc.created_at)}</td>
                     <td className="col-date">{formatDateTime(npc.updated_at)}</td>

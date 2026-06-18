@@ -6,6 +6,7 @@ from app.db import get_db
 from app.models.npc import NpcRow
 from app.schemas.npc import NpcCreate, NpcSummary, NpcUpdate
 from app.schemas.response import ApiResponse, ok
+from app.services.npc_tags import normalize_npc_tags
 
 router = APIRouter(prefix="/admin/npcs", tags=["admin-npcs"])
 
@@ -23,6 +24,7 @@ def _to_summary(row: NpcRow) -> NpcSummary:
         id=row.id,
         name=row.name,
         persona_description=row.persona_description,
+        tags=normalize_npc_tags(row.tags or []),
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
@@ -101,6 +103,7 @@ async def create_npc(
     row = NpcRow(
         name=payload.name.strip(),
         persona_description=payload.persona_description.strip(),
+        tags=payload.tags,
     )
     db.add(row)
     await db.commit()
@@ -133,6 +136,8 @@ async def update_npc(
         row.name = payload.name.strip()
     if payload.persona_description is not None:
         row.persona_description = payload.persona_description.strip()
+    if payload.tags is not None:
+        row.tags = payload.tags
 
     await db.commit()
     await db.refresh(row)

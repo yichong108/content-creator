@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 
+import { NpcTagList } from "@/components/NpcTagList";
 import { formatDateTime } from "@/lib/format";
+import { formatNpcTagsInput, parseNpcTagsInput } from "@/lib/npc-tags";
 import type { NpcFormPayload, NpcSummary } from "@/types/npc";
 
 interface NpcModalProps {
@@ -42,6 +44,7 @@ export function NpcModal({
 }: NpcModalProps) {
   const [name, setName] = useState("");
   const [personaDescription, setPersonaDescription] = useState("");
+  const [tagsInput, setTagsInput] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,9 +55,11 @@ export function NpcModal({
     if (mode === "create") {
       setName("");
       setPersonaDescription("");
+      setTagsInput("");
     } else if (npc != null) {
       setName(npc.name);
       setPersonaDescription(npc.persona_description);
+      setTagsInput(formatNpcTagsInput(npc.tags ?? []));
     }
 
     setFieldError(null);
@@ -101,6 +106,7 @@ export function NpcModal({
     const payload: NpcFormPayload = {
       name: trimmedName,
       persona_description: trimmedPersona,
+      tags: parseNpcTagsInput(tagsInput),
     };
 
     if (mode === "create") {
@@ -158,6 +164,12 @@ export function NpcModal({
                   <dd>{npc.name}</dd>
                 </div>
                 <div className="detail-item">
+                  <dt>标签</dt>
+                  <dd>
+                    <NpcTagList tags={npc.tags ?? []} />
+                  </dd>
+                </div>
+                <div className="detail-item">
                   <dt>人设描述</dt>
                   <dd className="detail-text">{npc.persona_description}</dd>
                 </div>
@@ -187,6 +199,18 @@ export function NpcModal({
                   placeholder="例如：豆包"
                   disabled={submitting}
                   autoFocus
+                />
+              </label>
+
+              <label className="form-field">
+                <span className="form-label">标签</span>
+                <span className="form-hint">多个标签可用逗号或空格分隔，例如：AI，助手</span>
+                <input
+                  className="form-input"
+                  value={tagsInput}
+                  onChange={(event) => setTagsInput(event.target.value)}
+                  placeholder="例如：AI，助手"
+                  disabled={submitting}
                 />
               </label>
 
