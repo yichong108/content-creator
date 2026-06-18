@@ -208,7 +208,7 @@ async def stream_live_events() -> StreamingResponse:
     """通过 SSE 推送直播新消息与状态变更。
 
     连接建立时发送 ``connected`` 事件；后台续写入库后发送 ``message`` 事件；
-    运行状态变化时发送 ``status`` 事件；空闲时发送 ``ping`` 心跳。
+    续写生成过程中发送 ``typing`` 事件；运行状态变化时发送 ``status`` 事件；空闲时发送 ``ping`` 心跳。
 
     Returns:
         ``text/event-stream`` 流式响应。

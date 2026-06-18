@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -46,3 +47,13 @@ class LiveSseStatusPayload(BaseModel):
     live_session_id: int = Field(description="直播会话 ID")
     running: bool = Field(description="是否正在实时续写")
     total: int = Field(description="当前聊天记录总条数")
+
+
+class LiveSseTypingPayload(BaseModel):
+    """SSE typing 事件载荷。"""
+
+    live_session_id: int = Field(description="直播会话 ID")
+    typing: bool = Field(description="是否正在生成下一条消息")
+    speaker: Literal["incoming", "outgoing"] = Field(
+        description="预测的下一条消息发送方；incoming 为对方，outgoing 为自己"
+    )

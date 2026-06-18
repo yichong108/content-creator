@@ -121,3 +121,50 @@ body {
   pointer-events: none;
   image-rendering: -webkit-optimize-contrast;
 }
+
+.wechat-typing-bubble {
+  display: flex;
+  align-items: center;
+  min-width: 52px;
+  padding-block: 11px;
+}
+
+.wechat-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wechat-typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #b2b2b2;
+  animation: wechat-typing-bounce 1.2s infinite ease-in-out both;
+}
+
+.wechat-typing-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.wechat-typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.wechat-typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes wechat-typing-bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}

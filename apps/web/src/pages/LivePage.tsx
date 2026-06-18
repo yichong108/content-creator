@@ -27,6 +27,7 @@ export function LivePage() {
       chatItems={live.chatItems}
       loading={live.loading}
       error={live.error}
+      peerTyping={live.peerTyping}
     />
   );
 }

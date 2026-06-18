@@ -12,6 +12,8 @@ export type WechatChatPageProps = {
   loading?: boolean;
   /** 加载失败时的错误文案，为 null 表示无错误 */
   error?: string | null;
+  /** 对方是否正在输入（仅展示 incoming 侧） */
+  peerTyping?: boolean;
 };
 
 function Avatar({ variant }: { variant: "self" | "other" }) {
@@ -68,6 +70,22 @@ function ChatRow({ item }: { item: ChatItem }) {
   );
 }
 
+function PeerTypingRow() {
+  return (
+    <div className="flex items-start gap-[var(--wechat-avatar-gap)] py-1.5" aria-live="polite">
+      <Avatar variant="other" />
+      <div className="wechat-bubble-in wechat-typing-bubble">
+        <span className="wechat-typing-dots" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </span>
+        <span className="sr-only">对方正在输入</span>
+      </div>
+    </div>
+  );
+}
+
 /**
  * 微信聊天页完整 UI
  *
@@ -78,6 +96,7 @@ export function WechatChatPage({
   chatItems,
   loading = false,
   error = null,
+  peerTyping = false,
 }: WechatChatPageProps) {
   const scrollRef = useRef<HTMLElement>(null);
 
@@ -87,7 +106,7 @@ export function WechatChatPage({
       return;
     }
     section.scrollTop = section.scrollHeight;
-  }, [chatItems, loading, error]);
+  }, [chatItems, loading, error, peerTyping]);
 
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
@@ -136,6 +155,7 @@ export function WechatChatPage({
         {!loading &&
           !error &&
           chatItems.map((item, index) => <ChatRow key={`${item.kind}-${index}`} item={item} />)}
+        {!loading && !error && peerTyping && <PeerTypingRow />}
       </section>
 
       <footer className="shrink-0">

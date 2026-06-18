@@ -17,6 +17,14 @@ export interface LiveSseMessagePayload {
   index: number;
 }
 
+/** SSE typing 事件载荷 */
+export interface LiveSseTypingPayload {
+  live_session_id: number;
+  typing: boolean;
+  /** incoming = 对方，outgoing = 自己 */
+  speaker: "incoming" | "outgoing";
+}
+
 /**
  * 获取直播 SSE 流地址。
  *

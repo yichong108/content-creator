@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Literal
 
 from sqlalchemy import select
 
@@ -23,6 +24,25 @@ LIVE_RUNNER_INTERVAL_AFTER_PUSH_SEC = 3.0
 
 # 无 running 会话时的空转间隔（秒）
 LIVE_RUNNER_IDLE_INTERVAL_SEC = 1.0
+
+
+def _predict_next_speaker(existing_items: list[ChatItem]) -> Literal["incoming", "outgoing"]:
+    """根据最近一条对话气泡预测下一条消息的发送方。
+
+    续写器通常交替 incoming/outgoing；若尚无对话气泡则默认对方先发言。
+
+    Args:
+        existing_items: 当前会话已有聊天记录。
+
+    Returns:
+        预测的下一条 incoming 或 outgoing 消息发送方。
+    """
+    for item in reversed(existing_items):
+        if item.kind == "incoming":
+            return "outgoing"
+        if item.kind == "outgoing":
+            return "incoming"
+    return "incoming"
 
 
 class LiveSessionRunner:
@@ -81,36 +101,63 @@ class LiveSessionRunner:
 
             live_session_id = row.id
             existing_items = [ChatItem.model_validate(item) for item in row.chat_items]
-            try:
-                new_item = await generate_live_chat_item(row.title, existing_items)
-            except (
-                AiConfigurationError,
-                AiAuthenticationError,
-                AiConnectionError,
-                AiUnavailableError,
-                AiResponseError,
-                ValueError,
-            ) as exc:
-                logger.warning("直播会话 %s 续写跳过: %s", live_session_id, exc)
-                return False
-
-            row.chat_items = [*row.chat_items, new_item.model_dump()]
-            await db.commit()
-
-            total = len(row.chat_items)
-            index = total - 1
-            logger.info("直播会话 %s 追加 1 条消息，当前共 %d 条", live_session_id, total)
+            next_speaker = _predict_next_speaker(existing_items)
 
         await live_session_event_hub.publish(
-            "message",
+            "typing",
             {
                 "live_session_id": live_session_id,
-                "item": new_item.model_dump(),
-                "total": total,
-                "index": index,
+                "typing": True,
+                "speaker": next_speaker,
             },
         )
-        return True
+
+        try:
+            async with async_session() as db:
+                result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.id == live_session_id).limit(1))
+                row = result.scalar_one_or_none()
+                if row is None or not row.running:
+                    return False
+
+                try:
+                    new_item = await generate_live_chat_item(row.title, existing_items)
+                except (
+                    AiConfigurationError,
+                    AiAuthenticationError,
+                    AiConnectionError,
+                    AiUnavailableError,
+                    AiResponseError,
+                    ValueError,
+                ) as exc:
+                    logger.warning("直播会话 %s 续写跳过: %s", live_session_id, exc)
+                    return False
+
+                row.chat_items = [*row.chat_items, new_item.model_dump()]
+                await db.commit()
+
+                total = len(row.chat_items)
+                index = total - 1
+                logger.info("直播会话 %s 追加 1 条消息，当前共 %d 条", live_session_id, total)
+
+            await live_session_event_hub.publish(
+                "message",
+                {
+                    "live_session_id": live_session_id,
+                    "item": new_item.model_dump(),
+                    "total": total,
+                    "index": index,
+                },
+            )
+            return True
+        finally:
+            await live_session_event_hub.publish(
+                "typing",
+                {
+                    "live_session_id": live_session_id,
+                    "typing": False,
+                    "speaker": next_speaker,
+                },
+            )
 
 
 live_session_runner = LiveSessionRunner()
