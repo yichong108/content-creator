@@ -7,6 +7,7 @@ import {
   fetchLiveSessions,
   updateLiveSession as updateLiveSessionApi,
   updateLiveSessionEnabled as updateLiveSessionEnabledApi,
+  updateLiveSessionRunning as updateLiveSessionRunningApi,
 } from "@/api/live-sessions";
 import { getRequestErrorMessage } from "@/lib/request";
 import type {
@@ -43,6 +44,8 @@ interface LiveSessionState {
   deleteLiveSession: (liveSessionId: number) => Promise<boolean>;
   /** 更新直播展示开关 */
   setEnabled: (liveSessionId: number, enabled: boolean) => Promise<boolean>;
+  /** 更新直播运行状态 */
+  setRunning: (liveSessionId: number, running: boolean) => Promise<boolean>;
   /** 清空当前详情 */
   clearCurrentLiveSession: () => void;
   /** 清空错误信息 */
@@ -119,6 +122,18 @@ export const useLiveSessionStore = create<LiveSessionState>((set, get) => ({
   setEnabled: async (liveSessionId: number, enabled: boolean) => {
     set({ submitting: true, error: null });
     const result = await updateLiveSessionEnabledApi(liveSessionId, enabled);
+    if (result.ok) {
+      set({ submitting: false });
+      await get().loadLiveSessions();
+      return true;
+    }
+    set({ submitting: false, error: getRequestErrorMessage(result) });
+    return false;
+  },
+
+  setRunning: async (liveSessionId: number, running: boolean) => {
+    set({ submitting: true, error: null });
+    const result = await updateLiveSessionRunningApi(liveSessionId, running);
     if (result.ok) {
       set({ submitting: false });
       await get().loadLiveSessions();

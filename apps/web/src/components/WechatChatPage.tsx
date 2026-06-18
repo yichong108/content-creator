@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import { WechatMessageText } from "@/components/WechatMessageText";
 import type { ChatItem } from "@/data/chat-items";
 
@@ -77,6 +79,16 @@ export function WechatChatPage({
   loading = false,
   error = null,
 }: WechatChatPageProps) {
+  const scrollRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const section = scrollRef.current;
+    if (!section || loading || error) {
+      return;
+    }
+    section.scrollTop = section.scrollHeight;
+  }, [chatItems, loading, error]);
+
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
       <header className="relative z-10 flex shrink-0 items-center justify-between border-b-[0.5px] border-black/[0.05] px-3 pb-2.5 pt-3">
@@ -111,7 +123,10 @@ export function WechatChatPage({
         </button>
       </header>
 
-      <section className="-mt-px min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(0.25rem+1px)] pt-[calc(0.25rem+1px)]">
+      <section
+        ref={scrollRef}
+        className="-mt-px min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(0.25rem+1px)] pt-[calc(0.25rem+1px)]"
+      >
         {loading && (
           <p className="py-8 text-center text-[14px] text-[var(--wechat-text-secondary)]">
             加载中…

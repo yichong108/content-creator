@@ -17,13 +17,31 @@ export function LiveSessionListPage() {
   const loadLiveSessions = useLiveSessionStore((state) => state.loadLiveSessions);
   const deleteLiveSession = useLiveSessionStore((state) => state.deleteLiveSession);
   const setEnabled = useLiveSessionStore((state) => state.setEnabled);
+  const setRunning = useLiveSessionStore((state) => state.setRunning);
   const [previewSessionId, setPreviewSessionId] = useState<number | null>(null);
   const [togglingSessionId, setTogglingSessionId] = useState<number | null>(null);
+  const [runningSessionId, setRunningSessionId] = useState<number | null>(null);
   const [previewSessionTitle, setPreviewSessionTitle] = useState("");
+
+  const hasRunningSession = liveSessions.some((session) => session.running);
 
   useEffect(() => {
     void loadLiveSessions();
   }, [loadLiveSessions]);
+
+  useEffect(() => {
+    if (!hasRunningSession) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void loadLiveSessions();
+    }, 3000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [hasRunningSession, loadLiveSessions]);
 
   const handleDelete = async (liveSessionId: number, title: string) => {
     const confirmed = window.confirm(`确定删除直播会话「${title}」吗？此操作不可恢复。`);
@@ -51,6 +69,21 @@ export function LiveSessionListPage() {
     setTogglingSessionId(liveSessionId);
     await setEnabled(liveSessionId, nextEnabled);
     setTogglingSessionId(null);
+  };
+
+  const handleRunningToggle = async (liveSessionId: number, nextRunning: boolean) => {
+    if (nextRunning) {
+      const confirmed = window.confirm(
+        "开始运行后将自动开启直播展示，并实时续写聊天记录。确定开始吗？",
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setRunningSessionId(liveSessionId);
+    await setRunning(liveSessionId, nextRunning);
+    setRunningSessionId(null);
   };
 
   const fetchPreviewSession = async (liveSessionId: number) => {
@@ -105,6 +138,7 @@ export function LiveSessionListPage() {
               <col className="col-desc" />
               <col className="col-num" />
               <col className="col-switch" />
+              <col className="col-switch" />
               <col className="col-date" />
               <col className="col-date" />
               <col className="col-actions" />
@@ -116,6 +150,7 @@ export function LiveSessionListPage() {
                 <th scope="col">描述</th>
                 <th scope="col">消息数</th>
                 <th scope="col">直播展示</th>
+                <th scope="col">运行</th>
                 <th scope="col">创建时间</th>
                 <th scope="col">更新时间</th>
                 <th scope="col">操作</th>
@@ -124,13 +159,13 @@ export function LiveSessionListPage() {
             <tbody>
               {listLoading ? (
                 <tr>
-                  <td className="table-state" colSpan={8}>
+                  <td className="table-state" colSpan={9}>
                     正在加载直播会话列表…
                   </td>
                 </tr>
               ) : liveSessions.length === 0 ? (
                 <tr>
-                  <td className="table-state" colSpan={8}>
+                  <td className="table-state" colSpan={9}>
                     <div className="empty-state empty-state--table">
                       <p className="muted">暂无直播会话</p>
                       <Link className="btn btn-primary btn-sm" to="/live-sessions/new">
@@ -165,6 +200,27 @@ export function LiveSessionListPage() {
                           {liveSession.enabled ? "关闭直播展示" : "开启直播展示"}
                         </span>
                       </label>
+                    </td>
+                    <td className="col-switch">
+                      {liveSession.running ? (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          disabled={submitting && runningSessionId === liveSession.id}
+                          onClick={() => void handleRunningToggle(liveSession.id, false)}
+                        >
+                          停止运行
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          disabled={submitting && runningSessionId === liveSession.id}
+                          onClick={() => void handleRunningToggle(liveSession.id, true)}
+                        >
+                          开始运行
+                        </button>
+                      )}
                     </td>
                     <td className="col-date">{formatDateTime(liveSession.created_at)}</td>
                     <td className="col-date">{formatDateTime(liveSession.updated_at)}</td>

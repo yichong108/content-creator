@@ -16,6 +16,7 @@ from app.routers.health import router as health_router
 from app.routers.live_sessions import router as live_sessions_router
 from app.routers.sessions import router as sessions_router
 from app.services.cursor_bridge import ensure_cursor_bridge, shutdown_cursor_bridge
+from app.services.live_session_runner import live_session_runner
 
 
 @asynccontextmanager
@@ -24,6 +25,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     await init_db()
     ensure_cursor_bridge()
     yield
+    await live_session_runner.stop()
     shutdown_cursor_bridge()
 
 

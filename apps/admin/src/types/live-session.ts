@@ -11,6 +11,7 @@ export interface LiveSessionSummary {
   description: string | null;
   chat_item_count: number;
   enabled: boolean;
+  running: boolean;
   created_at: string;
   updated_at: string;
 }

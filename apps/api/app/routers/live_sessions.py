@@ -13,6 +13,7 @@ from app.schemas.live_session import (
     LiveSessionCreate,
     LiveSessionDetail,
     LiveSessionEnabledUpdate,
+    LiveSessionRunningUpdate,
     LiveSessionSummary,
     LiveSessionUpdate,
 )
@@ -31,6 +32,8 @@ from app.services.ai_errors import (
 from app.services.ai_http import fail_from_ai_error
 from app.services.ai_provider import validate_ai_config
 from app.services.chat_items_generator import generate_chat_items
+from app.services.live_session_events import live_session_event_hub
+from app.services.live_session_runner import live_session_runner
 from app.services.session_title_generator import generate_session_title
 
 logger = logging.getLogger(__name__)
@@ -53,6 +56,7 @@ def _to_summary(row: LiveSessionRow) -> LiveSessionSummary:
         description=row.description,
         chat_item_count=len(row.chat_items),
         enabled=row.enabled,
+        running=row.running,
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
@@ -74,6 +78,7 @@ def _to_detail(row: LiveSessionRow) -> LiveSessionDetail:
         description=row.description,
         chat_item_count=len(chat_items),
         enabled=row.enabled,
+        running=row.running,
         created_at=row.created_at,
         updated_at=row.updated_at,
         chat_items=chat_items,
@@ -291,10 +296,72 @@ async def update_live_session_enabled(
         for enabled_row in result.scalars().all():
             enabled_row.enabled = False
 
-    row.enabled = payload.enabled
+        running_result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.running.is_(True)))
+        for running_row in running_result.scalars().all():
+            if running_row.id != live_session_id:
+                running_row.running = False
+
+        row.enabled = True
+    else:
+        row.enabled = False
+        if row.running:
+            row.running = False
 
     await db.commit()
     await db.refresh(row)
+    return ok(_to_summary(row))
+
+
+@router.patch("/{live_session_id}/running", response_model=ApiResponse[LiveSessionSummary])
+async def update_live_session_running(
+    live_session_id: int,
+    payload: LiveSessionRunningUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[LiveSessionSummary]:
+    """更新直播会话运行状态，全局仅允许一个直播会话处于 running。
+
+    开始运行时自动开启直播展示，并启动后台续写任务；停止时关闭 running 标记。
+
+    Args:
+        live_session_id: 直播会话 ID。
+        payload: 含 running 的请求体。
+        db: 异步数据库会话。
+
+    Returns:
+        统一 ``ApiResponse`` 包裹的更新后直播会话摘要。
+
+    Raises:
+        HTTPException: 直播会话不存在时返回 404。
+    """
+    row = await _get_live_session_row(live_session_id, db)
+
+    if payload.running:
+        result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.running.is_(True)))
+        for running_row in result.scalars().all():
+            running_row.running = False
+
+        enabled_result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.enabled.is_(True)))
+        for enabled_row in enabled_result.scalars().all():
+            enabled_row.enabled = False
+
+        row.running = True
+        row.enabled = True
+        await live_session_runner.start()
+    else:
+        row.running = False
+
+    await db.commit()
+    await db.refresh(row)
+
+    await live_session_event_hub.publish(
+        "status",
+        {
+            "live_session_id": row.id,
+            "running": row.running,
+            "total": len(row.chat_items),
+        },
+    )
+
     return ok(_to_summary(row))
 
 
@@ -316,6 +383,8 @@ async def delete_live_session(
         HTTPException: 直播会话不存在时返回 404。
     """
     row = await _get_live_session_row(live_session_id, db)
+    if row.running:
+        row.running = False
     await db.delete(row)
     await db.commit()
     return ok(None, message="deleted")

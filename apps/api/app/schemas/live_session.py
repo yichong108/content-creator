@@ -13,6 +13,7 @@ class LiveSessionSummary(BaseModel):
     description: str | None = Field(default=None, description="直播会话描述")
     chat_item_count: int = Field(description="聊天记录条数")
     enabled: bool = Field(description="是否作为当前直播展示会话")
+    running: bool = Field(description="是否正在实时续写聊天记录")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="更新时间")
 
@@ -43,3 +44,9 @@ class LiveSessionEnabledUpdate(BaseModel):
     """更新直播会话展示开关。"""
 
     enabled: bool = Field(description="是否作为当前直播展示会话")
+
+
+class LiveSessionRunningUpdate(BaseModel):
+    """更新直播会话运行状态。"""
+
+    running: bool = Field(description="是否开始/停止实时续写聊天记录")

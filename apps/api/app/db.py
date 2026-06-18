@@ -74,6 +74,38 @@ async def _ensure_default_mobile_session() -> None:
         await session.commit()
 
 
+async def _ensure_live_session_running_column() -> None:
+    """为已有 deployments 补齐 live_sessions.running 列。"""
+    async with engine.begin() as conn:
+        result = await conn.execute(
+            text(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'live_sessions'
+                  AND COLUMN_NAME = 'running'
+                """
+            )
+        )
+        if result.scalar_one() == 0:
+            await conn.execute(text("ALTER TABLE live_sessions ADD COLUMN running TINYINT(1) NOT NULL DEFAULT 0"))
+
+
+async def _reset_stale_live_session_running() -> None:
+    """应用重启后将 running 标记清零，避免无后台任务却显示运行中。"""
+    from app.models.live_session import LiveSessionRow
+
+    async with async_session() as session:
+        result = await session.execute(select(LiveSessionRow).where(LiveSessionRow.running.is_(True)))
+        rows = result.scalars().all()
+        if not rows:
+            return
+        for row in rows:
+            row.running = False
+        await session.commit()
+
+
 async def _ensure_default_live_session() -> None:
     """
     若库中尚无已开启的直播会话，则启用最近更新的直播会话。
@@ -101,5 +133,7 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await _ensure_mobile_enabled_column()
+    await _ensure_live_session_running_column()
     await _ensure_default_mobile_session()
     await _ensure_default_live_session()
+    await _reset_stale_live_session_running()

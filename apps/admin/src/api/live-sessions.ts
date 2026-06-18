@@ -94,6 +94,24 @@ export function updateLiveSessionEnabled(
 }
 
 /**
+ * 更新直播会话运行状态（开始/停止实时续写）。
+ *
+ * @param liveSessionId - 直播会话 ID
+ * @param running - 是否开始运行
+ * @returns 更新后的直播会话摘要
+ */
+export function updateLiveSessionRunning(
+  liveSessionId: number,
+  running: boolean,
+): Promise<RequestResult<LiveSessionSummary>> {
+  return request<LiveSessionSummary>({
+    url: `/api/admin/live-sessions/${liveSessionId}/running`,
+    method: "PATCH",
+    data: { running },
+  });
+}
+
+/**
  * 根据描述或聊天记录自动生成直播会话标题。
  *
  * @param payload - 可选描述与聊天记录，用于提炼标题
