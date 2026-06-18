@@ -11,6 +11,7 @@ import { SessionCreatePage } from "@/pages/SessionCreatePage";
 import { SessionDetailPage } from "@/pages/SessionDetailPage";
 import { SessionEditPage } from "@/pages/SessionEditPage";
 import { SessionListPage } from "@/pages/SessionListPage";
+import { TopicManagementPage } from "@/pages/TopicManagementPage";
 
 /**
  * 应用路由配置。
@@ -30,6 +31,7 @@ export function AppRouter() {
           <Route path="live-sessions" element={<LiveSessionListPage />} />
           <Route path="system/models" element={<ModelConfigPage />} />
           <Route path="npcs" element={<NpcManagementPage />} />
+          <Route path="topics" element={<TopicManagementPage />} />
           <Route path="*" element={<Navigate replace to="/" />} />
         </Route>
       </Routes>
