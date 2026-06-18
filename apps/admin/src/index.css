@@ -701,21 +701,33 @@ button.link {
   display: flex;
   flex-direction: column;
   width: min(100%, 520px);
+  min-height: 0;
 }
 
 .modal-body {
+  flex: 1;
+  min-height: 0;
   padding: 20px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .modal-form {
   gap: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .modal-form .modal-body {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.modal-header,
+.modal-footer {
+  flex-shrink: 0;
 }
 
 .modal-footer {
