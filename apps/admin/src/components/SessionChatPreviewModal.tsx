@@ -8,8 +8,12 @@ import {
   getWebPreviewUrl,
   parseChatPreviewMessage,
 } from "@/lib/chat-preview-message";
-import { getRequestErrorMessage } from "@/lib/request";
+import { getRequestErrorMessage, type RequestResult } from "@/lib/request";
 import type { ChatItem } from "@/types/session";
+
+interface SessionPreviewDetail {
+  chat_items: ChatItem[];
+}
 
 interface SessionChatPreviewModalProps {
   /** 是否显示弹窗 */
@@ -20,6 +24,10 @@ interface SessionChatPreviewModalProps {
   sessionTitle: string;
   /** 关闭弹窗回调 */
   onClose: () => void;
+  /** iframe 嵌入的 web 页路径，默认移动端首页 */
+  previewPath?: string;
+  /** 自定义会话详情拉取函数，缺省时使用普通会话 API */
+  fetchSessionDetail?: (sessionId: number) => Promise<RequestResult<SessionPreviewDetail>>;
 }
 
 /**
@@ -32,6 +40,8 @@ export function SessionChatPreviewModal({
   sessionId,
   sessionTitle,
   onClose,
+  previewPath = "/",
+  fetchSessionDetail,
 }: SessionChatPreviewModalProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(false);
@@ -40,7 +50,7 @@ export function SessionChatPreviewModal({
   const [iframeReady, setIframeReady] = useState(false);
 
   const webPreviewOrigin = getWebPreviewOrigin();
-  const webPreviewUrl = getWebPreviewUrl();
+  const webPreviewUrl = getWebPreviewUrl(previewPath);
 
   const postChatItems = useCallback(
     (items: ChatItem[], title: string) => {
@@ -70,7 +80,17 @@ export function SessionChatPreviewModal({
     setError(null);
     setChatItems(null);
 
-    void fetchSession(sessionId).then((result) => {
+    const loadDetail =
+      fetchSessionDetail ??
+      (async (id: number) => {
+        const result = await fetchSession(id);
+        if (!result.ok) {
+          return result;
+        }
+        return { ok: true as const, data: { chat_items: result.data.chat_items } };
+      });
+
+    void loadDetail(sessionId).then((result) => {
       if (cancelled) {
         return;
       }
@@ -88,7 +108,7 @@ export function SessionChatPreviewModal({
     return () => {
       cancelled = true;
     };
-  }, [open, sessionId]);
+  }, [open, sessionId, fetchSessionDetail]);
 
   useEffect(() => {
     if (open) {

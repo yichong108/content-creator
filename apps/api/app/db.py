@@ -46,9 +46,7 @@ async def _ensure_mobile_enabled_column() -> None:
             )
         )
         if result.scalar_one() == 0:
-            await conn.execute(
-                text("ALTER TABLE sessions ADD COLUMN mobile_enabled TINYINT(1) NOT NULL DEFAULT 0")
-            )
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN mobile_enabled TINYINT(1) NOT NULL DEFAULT 0"))
 
 
 async def _ensure_default_mobile_session() -> None:
@@ -60,17 +58,13 @@ async def _ensure_default_mobile_session() -> None:
     from app.models.session import SessionRow
 
     async with async_session() as session:
-        enabled_result = await session.execute(
-            select(SessionRow).where(SessionRow.mobile_enabled.is_(True)).limit(1)
-        )
+        enabled_result = await session.execute(select(SessionRow).where(SessionRow.mobile_enabled.is_(True)).limit(1))
         # 如果存在移动端会话，则直接返回
         if enabled_result.scalar_one_or_none() is not None:
             return
 
         # 查询最近更新的会话
-        latest_result = await session.execute(
-            select(SessionRow).order_by(SessionRow.updated_at.desc()).limit(1)
-        )
+        latest_result = await session.execute(select(SessionRow).order_by(SessionRow.updated_at.desc()).limit(1))
         row = latest_result.scalar_one_or_none()
         if row is None:
             return
@@ -80,9 +74,32 @@ async def _ensure_default_mobile_session() -> None:
         await session.commit()
 
 
+async def _ensure_default_live_session() -> None:
+    """
+    若库中尚无已开启的直播会话，则启用最近更新的直播会话。
+    """
+    from app.models.live_session import LiveSessionRow
+
+    async with async_session() as session:
+        enabled_result = await session.execute(select(LiveSessionRow).where(LiveSessionRow.enabled.is_(True)).limit(1))
+        if enabled_result.scalar_one_or_none() is not None:
+            return
+
+        latest_result = await session.execute(
+            select(LiveSessionRow).order_by(LiveSessionRow.updated_at.desc()).limit(1)
+        )
+        row = latest_result.scalar_one_or_none()
+        if row is None:
+            return
+
+        row.enabled = True
+        await session.commit()
+
+
 async def init_db() -> None:
     """创建尚未存在的数据库表，并应用增量 schema 变更。"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await _ensure_mobile_enabled_column()
     await _ensure_default_mobile_session()
+    await _ensure_default_live_session()
