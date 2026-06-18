@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import type { ChatItem } from "@/data/chat-items";
 import {
   fetchLiveChatItems,
-  getLiveEventsUrl,
-  type LiveSseMessagePayload,
-  type LiveSseTypingPayload,
+  getLiveWebSocketUrl,
+  type LiveWsFrame,
+  type LiveWsMessagePayload,
+  type LiveWsTypingPayload,
 } from "@/lib/api";
 import { getRequestErrorMessage } from "@/lib/request";
 
@@ -25,54 +26,65 @@ function isChatItem(value: unknown): value is ChatItem {
   );
 }
 
-function parseSseMessagePayload(data: string): LiveSseMessagePayload | null {
-  try {
-    const parsed: unknown = JSON.parse(data);
-    if (parsed === null || typeof parsed !== "object") {
-      return null;
-    }
-
-    const record = parsed as Record<string, unknown>;
-    if (
-      typeof record.live_session_id !== "number" ||
-      typeof record.total !== "number" ||
-      typeof record.index !== "number" ||
-      !isChatItem(record.item)
-    ) {
-      return null;
-    }
-
-    return {
-      live_session_id: record.live_session_id,
-      item: record.item,
-      total: record.total,
-      index: record.index,
-    };
-  } catch {
+function parseWsMessagePayload(data: unknown): LiveWsMessagePayload | null {
+  if (data === null || typeof data !== "object") {
     return null;
   }
+
+  const record = data as Record<string, unknown>;
+  if (
+    typeof record.live_session_id !== "number" ||
+    typeof record.total !== "number" ||
+    typeof record.index !== "number" ||
+    !isChatItem(record.item)
+  ) {
+    return null;
+  }
+
+  return {
+    live_session_id: record.live_session_id,
+    item: record.item,
+    total: record.total,
+    index: record.index,
+  };
 }
 
-function parseSseTypingPayload(data: string): LiveSseTypingPayload | null {
+function parseWsTypingPayload(data: unknown): LiveWsTypingPayload | null {
+  if (data === null || typeof data !== "object") {
+    return null;
+  }
+
+  const record = data as Record<string, unknown>;
+  if (
+    typeof record.live_session_id !== "number" ||
+    typeof record.typing !== "boolean" ||
+    (record.speaker !== "incoming" && record.speaker !== "outgoing")
+  ) {
+    return null;
+  }
+
+  return {
+    live_session_id: record.live_session_id,
+    typing: record.typing,
+    speaker: record.speaker,
+  };
+}
+
+function parseWsFrame(raw: string): LiveWsFrame | null {
   try {
-    const parsed: unknown = JSON.parse(data);
+    const parsed: unknown = JSON.parse(raw);
     if (parsed === null || typeof parsed !== "object") {
       return null;
     }
 
     const record = parsed as Record<string, unknown>;
-    if (
-      typeof record.live_session_id !== "number" ||
-      typeof record.typing !== "boolean" ||
-      (record.speaker !== "incoming" && record.speaker !== "outgoing")
-    ) {
+    if (typeof record.event !== "string") {
       return null;
     }
 
     return {
-      live_session_id: record.live_session_id,
-      typing: record.typing,
-      speaker: record.speaker,
+      event: record.event,
+      data: record.data,
     };
   } catch {
     return null;
@@ -80,9 +92,9 @@ function parseSseTypingPayload(data: string): LiveSseTypingPayload | null {
 }
 
 /**
- * 直播页聊天记录加载与 SSE 订阅 hook。
+ * 直播页聊天记录加载与 WebSocket 订阅 hook。
  *
- * 先通过 REST 拉取全量消息，再订阅 ``text/event-stream`` 接收新消息追加。
+ * 先通过 REST 拉取全量消息，再订阅 WebSocket 接收新消息追加。
  *
  * @returns 标题、聊天记录、加载与错误状态，以及对方是否正在输入
  */
@@ -96,83 +108,87 @@ export function useLiveChatStream() {
 
   useEffect(() => {
     let cancelled = false;
-    let source: EventSource | null = null;
+    let socket: WebSocket | null = null;
 
     const connectStream = () => {
-      source = new EventSource(getLiveEventsUrl());
+      socket = new WebSocket(getLiveWebSocketUrl());
 
-      source.addEventListener("connected", (event) => {
-        try {
-          const payload: unknown = JSON.parse((event as MessageEvent<string>).data);
-          if (payload === null || typeof payload !== "object") {
+      socket.onmessage = (event) => {
+        const frame = parseWsFrame(String(event.data));
+        if (!frame) {
+          return;
+        }
+
+        switch (frame.event) {
+          case "connected": {
+            const data = frame.data;
+            if (data === null || typeof data !== "object") {
+              return;
+            }
+
+            const record = data as Record<string, unknown>;
+            if (typeof record.title === "string") {
+              setTitle(record.title);
+            }
+            if (typeof record.live_session_id === "number") {
+              liveSessionIdRef.current = record.live_session_id;
+            }
             return;
           }
+          case "message": {
+            const payload = parseWsMessagePayload(frame.data);
+            if (!payload) {
+              return;
+            }
 
-          const record = payload as Record<string, unknown>;
-          if (typeof record.title === "string") {
-            setTitle(record.title);
-          }
-          if (typeof record.live_session_id === "number") {
-            liveSessionIdRef.current = record.live_session_id;
-          }
-        } catch {
-          // 忽略 connected 解析失败
-        }
-      });
+            if (
+              liveSessionIdRef.current != null &&
+              payload.live_session_id !== liveSessionIdRef.current
+            ) {
+              return;
+            }
 
-      source.addEventListener("message", (event) => {
-        const payload = parseSseMessagePayload((event as MessageEvent<string>).data);
-        if (!payload) {
-          return;
-        }
-
-        if (
-          liveSessionIdRef.current != null &&
-          payload.live_session_id !== liveSessionIdRef.current
-        ) {
-          return;
-        }
-
-        setChatItems((prev) => {
-          if (prev.length >= payload.total) {
-            return prev;
-          }
-          return [...prev, payload.item];
-        });
-        setPeerTyping(false);
-      });
-
-      source.addEventListener("typing", (event) => {
-        const payload = parseSseTypingPayload((event as MessageEvent<string>).data);
-        if (!payload) {
-          return;
-        }
-
-        if (
-          liveSessionIdRef.current != null &&
-          payload.live_session_id !== liveSessionIdRef.current
-        ) {
-          return;
-        }
-
-        setPeerTyping(payload.typing && payload.speaker === "incoming");
-      });
-
-      source.addEventListener("status", (event) => {
-        try {
-          const parsed: unknown = JSON.parse((event as MessageEvent<string>).data);
-          if (parsed === null || typeof parsed !== "object") {
-            return;
-          }
-
-          const record = parsed as Record<string, unknown>;
-          if (record.running === false) {
+            setChatItems((prev) => {
+              if (prev.length >= payload.total) {
+                return prev;
+              }
+              return [...prev, payload.item];
+            });
             setPeerTyping(false);
+            return;
           }
-        } catch {
-          // 忽略 status 解析失败
+          case "typing": {
+            const payload = parseWsTypingPayload(frame.data);
+            if (!payload) {
+              return;
+            }
+
+            if (
+              liveSessionIdRef.current != null &&
+              payload.live_session_id !== liveSessionIdRef.current
+            ) {
+              return;
+            }
+
+            setPeerTyping(payload.typing && payload.speaker === "incoming");
+            return;
+          }
+          case "status": {
+            const data = frame.data;
+            if (data === null || typeof data !== "object") {
+              return;
+            }
+
+            const record = data as Record<string, unknown>;
+            if (record.running === false) {
+              setPeerTyping(false);
+            }
+            return;
+          }
+          default:
+            return;
         }
-      });
+      };
     };
 
     void fetchLiveChatItems().then((res) => {
@@ -194,7 +210,7 @@ export function useLiveChatStream() {
 
     return () => {
       cancelled = true;
-      source?.close();
+      socket?.close();
     };
   }, []);
 

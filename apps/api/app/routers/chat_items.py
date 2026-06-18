@@ -1,10 +1,7 @@
 import asyncio
-import json
-from collections.abc import AsyncIterator
 from typing import Literal, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +11,7 @@ from app.models.session import SessionRow
 from app.schemas.chat_item import ChatItem
 from app.schemas.live_status import LiveChatItemsAppendResponse, LiveStatusResponse
 from app.schemas.response import ApiResponse, ok
-from app.services.live_session_events import LIVE_SSE_HEARTBEAT_SEC, live_session_event_hub
+from app.services.live_session_events import LIVE_WS_HEARTBEAT_SEC, live_session_event_hub
 
 router = APIRouter(tags=["chat-items"])
 
@@ -173,76 +170,55 @@ async def list_live_chat_items(
     return ok(LiveChatItemsAppendResponse(items=all_items[since:], total=len(all_items)))
 
 
-def _format_sse(event: str, data: dict[str, object]) -> str:
-    """格式化为 SSE 文本帧。
-
-    Args:
-        event: SSE event 名称。
-        data: 可 JSON 序列化的载荷。
+async def _load_enabled_live_session() -> LiveSessionRow | None:
+    """读取当前已开启的直播会话。
 
     Returns:
-        符合 SSE 协议的字符串。
-    """
-    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
-
-
-async def _load_enabled_live_session() -> LiveSessionRow:
-    """读取当前已开启的直播会话，不存在时抛出 404。
-
-    Returns:
-        已开启的直播会话 ORM 行。
-
-    Raises:
-        HTTPException: 尚无已开启的直播会话时返回 404。
+        已开启的直播会话 ORM 行；不存在时返回 ``None``。
     """
     async with async_session() as db:
         result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.enabled.is_(True)).limit(1))
-        row = result.scalar_one_or_none()
-        if row is None:
-            raise HTTPException(status_code=404, detail="暂无已开启的直播会话")
-        return row
+        return result.scalar_one_or_none()
 
 
-@router.get("/live/events")
-async def stream_live_events() -> StreamingResponse:
-    """通过 SSE 推送直播新消息与状态变更。
+@router.websocket("/live/ws")
+async def websocket_live_events(websocket: WebSocket) -> None:
+    """通过 WebSocket 推送直播新消息与状态变更。
 
     连接建立时发送 ``connected`` 事件；后台续写入库后发送 ``message`` 事件；
     续写生成过程中发送 ``typing`` 事件；运行状态变化时发送 ``status`` 事件；空闲时发送 ``ping`` 心跳。
 
-    Returns:
-        ``text/event-stream`` 流式响应。
+    Args:
+        websocket: FastAPI WebSocket 连接。
     """
+    await websocket.accept()
+    queue = await live_session_event_hub.subscribe()
+    try:
+        row = await _load_enabled_live_session()
+        if row is None:
+            await websocket.send_json({"event": "error", "data": {"detail": "暂无已开启的直播会话"}})
+            await websocket.close(code=1008)
+            return
 
-    async def event_generator() -> AsyncIterator[str]:
-        queue = await live_session_event_hub.subscribe()
-        try:
-            row = await _load_enabled_live_session()
-            yield _format_sse(
-                "connected",
-                {
+        await websocket.send_json(
+            {
+                "event": "connected",
+                "data": {
                     "live_session_id": row.id,
                     "title": row.title,
                     "running": row.running,
                     "total": len(row.chat_items),
                 },
-            )
+            }
+        )
 
-            while True:
-                try:
-                    message = await asyncio.wait_for(queue.get(), timeout=LIVE_SSE_HEARTBEAT_SEC)
-                    yield _format_sse(message["event"], message["data"])
-                except TimeoutError:
-                    yield _format_sse("ping", {})
-        finally:
-            await live_session_event_hub.unsubscribe(queue)
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+        while True:
+            try:
+                message = await asyncio.wait_for(queue.get(), timeout=LIVE_WS_HEARTBEAT_SEC)
+                await websocket.send_json(message)
+            except TimeoutError:
+                await websocket.send_json({"event": "ping", "data": {}})
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await live_session_event_hub.unsubscribe(queue)

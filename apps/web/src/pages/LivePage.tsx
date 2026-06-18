@@ -6,7 +6,7 @@ import { useLiveChatStream } from "@/hooks/useLiveChatStream";
  * 直播页
  *
  * 负责从 API 或 iframe postMessage 获取聊天记录，并传给 WechatChatPage 渲染，供直播演示使用。
- * 非嵌入模式下通过 SSE 接收 running 会话的新消息追加。
+ * 非嵌入模式下通过 WebSocket 接收 running 会话的新消息追加。
  */
 export function LivePage() {
   const preview = useChatPreviewPostMessage();

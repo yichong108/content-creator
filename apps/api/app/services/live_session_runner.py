@@ -46,7 +46,7 @@ def _predict_next_speaker(existing_items: list[ChatItem]) -> Literal["incoming",
 
 
 class LiveSessionRunner:
-    """直播会话后台运行器，串行续写单条消息、入库并通过 SSE 推送。"""
+    """直播会话后台运行器，串行续写单条消息、入库并通过 WebSocket 推送。"""
 
     def __init__(self) -> None:
         self._task: asyncio.Task[None] | None = None
@@ -72,7 +72,7 @@ class LiveSessionRunner:
             self._task = None
 
     async def _run_loop(self) -> None:
-        """串行续写：生成一条 → 入库 → SSE 推送 → 等待 3 秒 → 下一条。"""
+        """串行续写：生成一条 → 入库 → WebSocket 推送 → 等待 3 秒 → 下一条。"""
         while not self._stop_event.is_set():
             try:
                 appended = await self._append_once()

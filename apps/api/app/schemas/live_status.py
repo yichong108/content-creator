@@ -23,8 +23,8 @@ class LiveChatItemsAppendResponse(BaseModel):
     total: int = Field(description="当前会话聊天记录总条数")
 
 
-class LiveSseConnectedPayload(BaseModel):
-    """SSE connected 事件载荷。"""
+class LiveWsConnectedPayload(BaseModel):
+    """WebSocket connected 事件载荷。"""
 
     live_session_id: int = Field(description="当前直播展示会话 ID")
     title: str = Field(description="当前直播展示会话标题")
@@ -32,8 +32,8 @@ class LiveSseConnectedPayload(BaseModel):
     total: int = Field(description="当前聊天记录总条数")
 
 
-class LiveSseMessagePayload(BaseModel):
-    """SSE message 事件载荷。"""
+class LiveWsMessagePayload(BaseModel):
+    """WebSocket message 事件载荷。"""
 
     live_session_id: int = Field(description="直播会话 ID")
     item: ChatItem = Field(description="新追加的单条消息")
@@ -41,16 +41,16 @@ class LiveSseMessagePayload(BaseModel):
     index: int = Field(description="新消息在数组中的索引")
 
 
-class LiveSseStatusPayload(BaseModel):
-    """SSE status 事件载荷。"""
+class LiveWsStatusPayload(BaseModel):
+    """WebSocket status 事件载荷。"""
 
     live_session_id: int = Field(description="直播会话 ID")
     running: bool = Field(description="是否正在实时续写")
     total: int = Field(description="当前聊天记录总条数")
 
 
-class LiveSseTypingPayload(BaseModel):
-    """SSE typing 事件载荷。"""
+class LiveWsTypingPayload(BaseModel):
+    """WebSocket typing 事件载荷。"""
 
     live_session_id: int = Field(description="直播会话 ID")
     typing: bool = Field(description="是否正在生成下一条消息")

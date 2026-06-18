@@ -9,29 +9,38 @@ export interface LiveChatItemsResponse {
   total: number;
 }
 
-/** SSE message 事件载荷 */
-export interface LiveSseMessagePayload {
+/** WebSocket message 事件载荷 */
+export interface LiveWsMessagePayload {
   live_session_id: number;
   item: ChatItem;
   total: number;
   index: number;
 }
 
-/** SSE typing 事件载荷 */
-export interface LiveSseTypingPayload {
+/** WebSocket typing 事件载荷 */
+export interface LiveWsTypingPayload {
   live_session_id: number;
   typing: boolean;
   /** incoming = 对方，outgoing = 自己 */
   speaker: "incoming" | "outgoing";
 }
 
+/** WebSocket 下行帧 */
+export interface LiveWsFrame<T = unknown> {
+  event: string;
+  data: T;
+}
+
 /**
- * 获取直播 SSE 流地址。
+ * 获取直播 WebSocket 地址。
  *
- * @returns ``/api/live/events`` 完整 URL
+ * @returns ``/api/live/ws`` 完整 ws/wss URL
  */
-export function getLiveEventsUrl(): string {
-  return `${API_URL}/api/live/events`;
+export function getLiveWebSocketUrl(): string {
+  const url = new URL(API_URL);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = "/api/live/ws";
+  return url.toString();
 }
 
 /**

@@ -4,19 +4,19 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# SSE 心跳间隔（秒）
-LIVE_SSE_HEARTBEAT_SEC = 30.0
+# WebSocket 心跳间隔（秒）
+LIVE_WS_HEARTBEAT_SEC = 30.0
 
 
 class LiveSessionEventHub:
-    """直播会话 SSE 事件广播中心，将新消息与状态变更推送给所有订阅者。"""
+    """直播会话 WebSocket 事件广播中心，将新消息与状态变更推送给所有订阅者。"""
 
     def __init__(self) -> None:
         self._subscribers: set[asyncio.Queue[dict[str, Any]]] = set()
         self._lock = asyncio.Lock()
 
     async def subscribe(self) -> asyncio.Queue[dict[str, Any]]:
-        """注册 SSE 订阅队列。
+        """注册 WebSocket 订阅队列。
 
         Returns:
             用于接收事件的异步队列。
@@ -27,7 +27,7 @@ class LiveSessionEventHub:
         return queue
 
     async def unsubscribe(self, queue: asyncio.Queue[dict[str, Any]]) -> None:
-        """移除 SSE 订阅队列。
+        """移除 WebSocket 订阅队列。
 
         Args:
             queue: 先前由 ``subscribe`` 返回的队列。
@@ -36,10 +36,10 @@ class LiveSessionEventHub:
             self._subscribers.discard(queue)
 
     async def publish(self, event: str, data: dict[str, Any]) -> None:
-        """向所有订阅者广播 SSE 事件。
+        """向所有订阅者广播 WebSocket 事件。
 
         Args:
-            event: SSE event 名称。
+            event: 事件名称。
             data: 可 JSON 序列化的事件载荷。
         """
         message = {"event": event, "data": data}
@@ -50,7 +50,7 @@ class LiveSessionEventHub:
             try:
                 queue.put_nowait(message)
             except asyncio.QueueFull:
-                logger.warning("直播 SSE 订阅队列已满，丢弃事件 %s", event)
+                logger.warning("直播 WebSocket 订阅队列已满，丢弃事件 %s", event)
 
 
 live_session_event_hub = LiveSessionEventHub()
