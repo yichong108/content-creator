@@ -17,6 +17,7 @@
     "axios": "^1.17.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-router-dom": "^7.17.0",
     "wechat-emoji-renderer": "^1.0.0"
   },
   "devDependencies": {
