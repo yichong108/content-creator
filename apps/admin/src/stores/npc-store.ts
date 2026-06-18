@@ -6,9 +6,10 @@ import {
   fetchNpc as fetchNpcApi,
   fetchNpcs,
   updateNpc as updateNpcApi,
+  uploadNpcAvatar as uploadNpcAvatarApi,
 } from "@/api/npcs";
 import { getRequestErrorMessage } from "@/lib/request";
-import type { NpcFormPayload, NpcSummary } from "@/types/npc";
+import type { NpcFormOptions, NpcFormPayload, NpcSummary } from "@/types/npc";
 
 interface NpcState {
   /** NPC 列表 */
@@ -26,9 +27,13 @@ interface NpcState {
   /** 拉取指定 NPC 详情 */
   loadNpc: (npcId: number) => Promise<NpcSummary | null>;
   /** 创建 NPC */
-  createNpc: (payload: NpcFormPayload) => Promise<NpcSummary | null>;
+  createNpc: (payload: NpcFormPayload, options?: NpcFormOptions) => Promise<NpcSummary | null>;
   /** 更新 NPC */
-  updateNpc: (npcId: number, payload: NpcFormPayload) => Promise<NpcSummary | null>;
+  updateNpc: (
+    npcId: number,
+    payload: NpcFormPayload,
+    options?: NpcFormOptions,
+  ) => Promise<NpcSummary | null>;
   /** 删除 NPC */
   deleteNpc: (npcId: number) => Promise<boolean>;
   /** 清空错误信息 */
@@ -66,28 +71,52 @@ export const useNpcStore = create<NpcState>((set, get) => ({
     return null;
   },
 
-  createNpc: async (payload: NpcFormPayload) => {
+  createNpc: async (payload: NpcFormPayload, options?: NpcFormOptions) => {
     set({ submitting: true, error: null });
     const result = await createNpcApi(payload);
-    if (result.ok) {
-      await get().loadNpcs();
-      set({ submitting: false });
-      return result.data;
+    if (!result.ok) {
+      set({ submitting: false, error: getRequestErrorMessage(result) });
+      return null;
     }
-    set({ submitting: false, error: getRequestErrorMessage(result) });
-    return null;
+
+    let npc = result.data;
+    if (options?.avatarFile) {
+      const uploadResult = await uploadNpcAvatarApi(npc.id, options.avatarFile);
+      if (!uploadResult.ok) {
+        set({ submitting: false, error: getRequestErrorMessage(uploadResult) });
+        await get().loadNpcs();
+        return npc;
+      }
+      npc = uploadResult.data;
+    }
+
+    await get().loadNpcs();
+    set({ submitting: false });
+    return npc;
   },
 
-  updateNpc: async (npcId: number, payload: NpcFormPayload) => {
+  updateNpc: async (npcId: number, payload: NpcFormPayload, options?: NpcFormOptions) => {
     set({ submitting: true, error: null });
     const result = await updateNpcApi(npcId, payload);
-    if (result.ok) {
-      await get().loadNpcs();
-      set({ submitting: false });
-      return result.data;
+    if (!result.ok) {
+      set({ submitting: false, error: getRequestErrorMessage(result) });
+      return null;
     }
-    set({ submitting: false, error: getRequestErrorMessage(result) });
-    return null;
+
+    let npc = result.data;
+    if (options?.avatarFile) {
+      const uploadResult = await uploadNpcAvatarApi(npcId, options.avatarFile);
+      if (!uploadResult.ok) {
+        set({ submitting: false, error: getRequestErrorMessage(uploadResult) });
+        await get().loadNpcs();
+        return npc;
+      }
+      npc = uploadResult.data;
+    }
+
+    await get().loadNpcs();
+    set({ submitting: false });
+    return npc;
   },
 
   deleteNpc: async (npcId: number) => {

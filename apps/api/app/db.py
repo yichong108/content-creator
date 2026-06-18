@@ -146,6 +146,24 @@ async def _ensure_npc_tags_column() -> None:
             await conn.execute(text("ALTER TABLE npcs ADD COLUMN tags JSON NOT NULL DEFAULT (JSON_ARRAY())"))
 
 
+async def _ensure_npc_avatar_url_column() -> None:
+    """为已有 deployments 补齐 npcs.avatar_url 列。"""
+    async with engine.begin() as conn:
+        result = await conn.execute(
+            text(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'npcs'
+                  AND COLUMN_NAME = 'avatar_url'
+                """
+            )
+        )
+        if result.scalar_one() == 0:
+            await conn.execute(text("ALTER TABLE npcs ADD COLUMN avatar_url VARCHAR(500) NULL"))
+
+
 async def init_db() -> None:
     """创建尚未存在的数据库表，并应用增量 schema 变更。"""
     async with engine.begin() as conn:
@@ -153,6 +171,7 @@ async def init_db() -> None:
     await _ensure_mobile_enabled_column()
     await _ensure_live_session_running_column()
     await _ensure_npc_tags_column()
+    await _ensure_npc_avatar_url_column()
     await _ensure_default_mobile_session()
     await _ensure_default_live_session()
     await _reset_stale_live_session_running()

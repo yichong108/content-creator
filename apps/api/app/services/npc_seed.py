@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from app.db import async_session
 from app.models.npc import NpcRow
+from app.services.npc_avatar import build_default_avatar_url
 from app.services.npc_tags import normalize_npc_tags
 
 
@@ -186,6 +187,7 @@ async def seed_default_npcs() -> None:
                         name=seed.name,
                         persona_description=seed.persona_description,
                         tags=list(seed.tags),
+                        avatar_url=build_default_avatar_url(seed.name),
                     )
                 )
                 changed = True
@@ -193,6 +195,10 @@ async def seed_default_npcs() -> None:
 
             if not normalize_npc_tags(row.tags or []):
                 row.tags = list(seed.tags)
+                changed = True
+
+            if not row.avatar_url:
+                row.avatar_url = build_default_avatar_url(seed.name)
                 changed = True
 
         if changed:

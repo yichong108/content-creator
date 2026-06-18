@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { NpcAvatar } from "@/components/NpcAvatar";
 import { NpcModal } from "@/components/NpcModal";
 import { NpcTagList } from "@/components/NpcTagList";
 import { formatDateTime } from "@/lib/format";
 import { useNpcStore } from "@/stores/npc-store";
-import type { NpcFormPayload, NpcSummary } from "@/types/npc";
+import type { NpcFormOptions, NpcFormPayload, NpcSummary } from "@/types/npc";
 
 interface NpcModalState {
   mode: "view" | "edit" | "create";
@@ -68,8 +69,8 @@ export function NpcManagementPage() {
   }, [clearError, submitting]);
 
   const handleCreate = useCallback(
-    async (payload: NpcFormPayload) => {
-      const created = await createNpc(payload);
+    async (payload: NpcFormPayload, options?: NpcFormOptions) => {
+      const created = await createNpc(payload, options);
       if (created != null) {
         setModalState(null);
       }
@@ -78,8 +79,8 @@ export function NpcManagementPage() {
   );
 
   const handleSave = useCallback(
-    async (npcId: number, payload: NpcFormPayload) => {
-      const updated = await updateNpc(npcId, payload);
+    async (npcId: number, payload: NpcFormPayload, options?: NpcFormOptions) => {
+      const updated = await updateNpc(npcId, payload, options);
       if (updated != null) {
         setModalState(null);
       }
@@ -133,6 +134,7 @@ export function NpcManagementPage() {
         <div className="table-wrap">
           <table className="data-table">
             <colgroup>
+              <col className="col-avatar" />
               <col className="col-title" />
               <col className="col-tags" />
               <col className="col-desc" />
@@ -142,6 +144,7 @@ export function NpcManagementPage() {
             </colgroup>
             <thead>
               <tr>
+                <th scope="col">头像</th>
                 <th scope="col">NPC名称</th>
                 <th scope="col">标签</th>
                 <th scope="col">人设描述</th>
@@ -153,13 +156,13 @@ export function NpcManagementPage() {
             <tbody>
               {listLoading ? (
                 <tr>
-                  <td className="table-state" colSpan={6}>
+                  <td className="table-state" colSpan={7}>
                     正在加载 NPC 列表…
                   </td>
                 </tr>
               ) : npcs.length === 0 ? (
                 <tr>
-                  <td className="table-state" colSpan={6}>
+                  <td className="table-state" colSpan={7}>
                     <div className="empty-state empty-state--table">
                       <p className="muted">暂无 NPC</p>
                       <button
@@ -175,6 +178,9 @@ export function NpcManagementPage() {
               ) : (
                 npcs.map((npc) => (
                   <tr key={npc.id}>
+                    <td className="col-avatar">
+                      <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={36} />
+                    </td>
                     <td className="cell-title">{npc.name}</td>
                     <td className="cell-tags">
                       <NpcTagList tags={npc.tags ?? []} />
@@ -226,8 +232,8 @@ export function NpcManagementPage() {
         detailLoading={modalState?.mode === "view" && detailLoading}
         error={modalState != null ? error : null}
         onClose={handleCloseModal}
-        onCreate={(payload) => void handleCreate(payload)}
-        onSave={(npcId, payload) => void handleSave(npcId, payload)}
+        onCreate={(payload, options) => void handleCreate(payload, options)}
+        onSave={(npcId, payload, options) => void handleSave(npcId, payload, options)}
       />
     </section>
   );

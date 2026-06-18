@@ -1,9 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+import { NpcAvatar } from "@/components/NpcAvatar";
 import { NpcTagList } from "@/components/NpcTagList";
 import { formatDateTime } from "@/lib/format";
+import { resolveNpcAvatarUrl } from "@/lib/npc-avatar";
 import { formatNpcTagsInput, parseNpcTagsInput } from "@/lib/npc-tags";
-import type { NpcFormPayload, NpcSummary } from "@/types/npc";
+import type { NpcFormOptions, NpcFormPayload, NpcSummary } from "@/types/npc";
 
 interface NpcModalProps {
   /** 是否显示弹窗 */
@@ -21,9 +23,9 @@ interface NpcModalProps {
   /** 关闭弹窗回调 */
   onClose: () => void;
   /** 新建保存回调 */
-  onCreate?: (payload: NpcFormPayload) => void;
+  onCreate?: (payload: NpcFormPayload, options?: NpcFormOptions) => void;
   /** 编辑保存回调 */
-  onSave?: (npcId: number, payload: NpcFormPayload) => void;
+  onSave?: (npcId: number, payload: NpcFormPayload, options?: NpcFormOptions) => void;
 }
 
 /**
@@ -45,6 +47,9 @@ export function NpcModal({
   const [name, setName] = useState("");
   const [personaDescription, setPersonaDescription] = useState("");
   const [tagsInput, setTagsInput] = useState("");
+  const [avatarUrlInput, setAvatarUrlInput] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,14 +61,40 @@ export function NpcModal({
       setName("");
       setPersonaDescription("");
       setTagsInput("");
+      setAvatarUrlInput("");
+      setAvatarFile(null);
     } else if (npc != null) {
       setName(npc.name);
       setPersonaDescription(npc.persona_description);
       setTagsInput(formatNpcTagsInput(npc.tags ?? []));
+      setAvatarUrlInput(npc.avatar_url ?? "");
+      setAvatarFile(null);
     }
 
     setFieldError(null);
   }, [open, mode, npc]);
+
+  useEffect(() => {
+    if (avatarFile == null) {
+      setAvatarPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(avatarFile);
+    setAvatarPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [avatarFile]);
+
+  const previewAvatarUrl = useMemo(() => {
+    if (avatarPreviewUrl) {
+      return avatarPreviewUrl;
+    }
+    const trimmed = avatarUrlInput.trim();
+    return trimmed ? resolveNpcAvatarUrl(trimmed) : (npc?.avatar_url ?? null);
+  }, [avatarPreviewUrl, avatarUrlInput, npc?.avatar_url]);
 
   useEffect(() => {
     if (!open) {
@@ -107,19 +138,23 @@ export function NpcModal({
       name: trimmedName,
       persona_description: trimmedPersona,
       tags: parseNpcTagsInput(tagsInput),
+      avatar_url: avatarUrlInput.trim() || null,
     };
 
+    const options: NpcFormOptions = { avatarFile };
+
     if (mode === "create") {
-      onCreate?.(payload);
+      onCreate?.(payload, options);
       return;
     }
 
     if (npc != null) {
-      onSave?.(npc.id, payload);
+      onSave?.(npc.id, payload, options);
     }
   };
 
   const title = mode === "view" ? "查看 NPC" : mode === "edit" ? "编辑 NPC" : "新建 NPC";
+  const previewName = name.trim() || npc?.name || "NPC";
 
   return (
     <div className="modal-overlay" role="presentation" onClick={submitting ? undefined : onClose}>
@@ -158,30 +193,35 @@ export function NpcModal({
             {detailLoading ? (
               <p className="muted">加载中…</p>
             ) : (
-              <dl className="detail-list">
-                <div className="detail-item">
-                  <dt>NPC名称</dt>
-                  <dd>{npc.name}</dd>
+              <>
+                <div className="npc-avatar-preview">
+                  <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={72} />
                 </div>
-                <div className="detail-item">
-                  <dt>标签</dt>
-                  <dd>
-                    <NpcTagList tags={npc.tags ?? []} />
-                  </dd>
-                </div>
-                <div className="detail-item">
-                  <dt>人设描述</dt>
-                  <dd className="detail-text">{npc.persona_description}</dd>
-                </div>
-                <div className="detail-item">
-                  <dt>创建时间</dt>
-                  <dd>{formatDateTime(npc.created_at)}</dd>
-                </div>
-                <div className="detail-item">
-                  <dt>更新时间</dt>
-                  <dd>{formatDateTime(npc.updated_at)}</dd>
-                </div>
-              </dl>
+                <dl className="detail-list">
+                  <div className="detail-item">
+                    <dt>NPC名称</dt>
+                    <dd>{npc.name}</dd>
+                  </div>
+                  <div className="detail-item">
+                    <dt>标签</dt>
+                    <dd>
+                      <NpcTagList tags={npc.tags ?? []} />
+                    </dd>
+                  </div>
+                  <div className="detail-item">
+                    <dt>人设描述</dt>
+                    <dd className="detail-text">{npc.persona_description}</dd>
+                  </div>
+                  <div className="detail-item">
+                    <dt>创建时间</dt>
+                    <dd>{formatDateTime(npc.created_at)}</dd>
+                  </div>
+                  <div className="detail-item">
+                    <dt>更新时间</dt>
+                    <dd>{formatDateTime(npc.updated_at)}</dd>
+                  </div>
+                </dl>
+              </>
             )}
           </div>
         ) : (
@@ -189,6 +229,35 @@ export function NpcModal({
             <div className="modal-body">
               {error ? <div className="alert alert-error">{error}</div> : null}
               {fieldError ? <div className="alert alert-error">{fieldError}</div> : null}
+
+              <div className="npc-avatar-field">
+                <span className="form-label">头像</span>
+                <div className="npc-avatar-preview">
+                  <NpcAvatar name={previewName} avatarUrl={previewAvatarUrl} size={72} />
+                </div>
+                <label className="form-field">
+                  <span className="form-hint">
+                    上传本地图片（JPG / PNG / WebP / GIF，最大 2MB）
+                  </span>
+                  <input
+                    className="form-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    disabled={submitting}
+                    onChange={(event) => setAvatarFile(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <label className="form-field">
+                  <span className="form-hint">或填写头像 URL（留空则使用默认头像）</span>
+                  <input
+                    className="form-input"
+                    value={avatarUrlInput}
+                    onChange={(event) => setAvatarUrlInput(event.target.value)}
+                    placeholder="https://example.com/avatar.png"
+                    disabled={submitting}
+                  />
+                </label>
+              </div>
 
               <label className="form-field">
                 <span className="form-label">NPC名称</span>

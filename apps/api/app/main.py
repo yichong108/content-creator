@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db import init_db
@@ -19,12 +20,14 @@ from app.routers.npcs import router as npcs_router
 from app.routers.sessions import router as sessions_router
 from app.services.cursor_bridge import ensure_cursor_bridge, shutdown_cursor_bridge
 from app.services.live_session_runner import live_session_runner
+from app.services.npc_avatar import ensure_npc_upload_dir
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """应用启动时建表并初始化 Cursor Bridge。"""
     await init_db()
+    ensure_npc_upload_dir()
     ensure_cursor_bridge()
     yield
     await live_session_runner.stop()
@@ -44,6 +47,9 @@ app.include_router(sessions_router, prefix="/api")
 app.include_router(live_sessions_router, prefix="/api")
 app.include_router(npcs_router, prefix="/api")
 app.include_router(ai_config_router, prefix="/api")
+
+ensure_npc_upload_dir()
+app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")
 
 # 注册 CORS 中间件
 app.add_middleware(

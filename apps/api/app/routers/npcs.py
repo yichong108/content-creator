@@ -1,11 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.models.npc import NpcRow
+from app.schemas.error_codes import ERR_BAD_REQUEST
 from app.schemas.npc import NpcCreate, NpcSummary, NpcUpdate
-from app.schemas.response import ApiResponse, ok
+from app.schemas.response import ApiResponse, fail, ok
+from app.services.npc_avatar import (
+    build_default_avatar_url,
+    delete_local_avatar_file,
+    is_local_npc_avatar_url,
+    save_npc_avatar_file,
+)
 from app.services.npc_tags import normalize_npc_tags
 
 router = APIRouter(prefix="/admin/npcs", tags=["admin-npcs"])
@@ -25,6 +32,7 @@ def _to_summary(row: NpcRow) -> NpcSummary:
         name=row.name,
         persona_description=row.persona_description,
         tags=normalize_npc_tags(row.tags or []),
+        avatar_url=row.avatar_url,
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
@@ -100,10 +108,12 @@ async def create_npc(
     Returns:
         统一 ``ApiResponse`` 包裹的新建 NPC。
     """
+    avatar_url = payload.avatar_url or build_default_avatar_url(payload.name.strip())
     row = NpcRow(
         name=payload.name.strip(),
         persona_description=payload.persona_description.strip(),
         tags=payload.tags,
+        avatar_url=avatar_url,
     )
     db.add(row)
     await db.commit()
@@ -131,6 +141,7 @@ async def update_npc(
         HTTPException: NPC 不存在时返回 404。
     """
     row = await _get_npc_row(npc_id, db)
+    previous_avatar_url = row.avatar_url
 
     if payload.name is not None:
         row.name = payload.name.strip()
@@ -138,7 +149,47 @@ async def update_npc(
         row.persona_description = payload.persona_description.strip()
     if payload.tags is not None:
         row.tags = payload.tags
+    if "avatar_url" in payload.model_fields_set:
+        next_avatar_url = payload.avatar_url
+        if next_avatar_url != previous_avatar_url and is_local_npc_avatar_url(previous_avatar_url):
+            delete_local_avatar_file(previous_avatar_url)
+        row.avatar_url = next_avatar_url
 
+    await db.commit()
+    await db.refresh(row)
+    return ok(_to_summary(row))
+
+
+@router.post("/{npc_id}/avatar", response_model=ApiResponse[NpcSummary])
+async def upload_npc_avatar(
+    npc_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[NpcSummary | None]:
+    """上传并替换指定 NPC 的头像文件。
+
+    Args:
+        npc_id: NPC ID。
+        file: 头像图片文件。
+        db: 异步数据库会话。
+
+    Returns:
+        统一 ``ApiResponse`` 包裹的更新后 NPC。
+
+    Raises:
+        HTTPException: NPC 不存在时返回 404。
+    """
+    row = await _get_npc_row(npc_id, db)
+
+    try:
+        avatar_url = await save_npc_avatar_file(npc_id, file)
+    except ValueError as exc:
+        return fail(ERR_BAD_REQUEST, str(exc))
+
+    if is_local_npc_avatar_url(row.avatar_url) and row.avatar_url != avatar_url:
+        delete_local_avatar_file(row.avatar_url)
+
+    row.avatar_url = avatar_url
     await db.commit()
     await db.refresh(row)
     return ok(_to_summary(row))
@@ -162,6 +213,7 @@ async def delete_npc(
         HTTPException: NPC 不存在时返回 404。
     """
     row = await _get_npc_row(npc_id, db)
+    delete_local_avatar_file(row.avatar_url)
     await db.delete(row)
     await db.commit()
     return ok(None, message="deleted")

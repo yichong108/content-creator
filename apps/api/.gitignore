@@ -29,5 +29,8 @@ build/
 # Runtime AI config (contains secrets)
 data/ai_config.json
 
+# Uploaded files
+uploads/
+
 # Logs
 *.log

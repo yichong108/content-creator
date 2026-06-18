@@ -9,6 +9,8 @@ export interface NpcSummary {
   persona_description: string;
   /** 标签列表 */
   tags: string[];
+  /** 头像 URL */
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -20,4 +22,11 @@ export interface NpcFormPayload {
   name: string;
   persona_description: string;
   tags: string[];
+  avatar_url?: string | null;
+}
+
+/** NPC 表单提交时的附加选项。 */
+export interface NpcFormOptions {
+  /** 待上传的头像文件 */
+  avatarFile?: File | null;
 }

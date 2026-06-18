@@ -15,6 +15,7 @@ class NpcRow(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     persona_description: Mapped[str] = mapped_column(Text, nullable=False)
     tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,

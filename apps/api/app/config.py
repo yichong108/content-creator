@@ -19,10 +19,16 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     cors_origins: str = "http://localhost:3000,http://localhost:3001,http://localhost:3002"
     database_url: str = "mysql+aiomysql://wechat:wechat@127.0.0.1:3307/wechat_bot?charset=utf8mb4"
+    uploads_dir: str = "uploads"
 
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def uploads_path(self) -> Path:
+        """上传文件根目录（相对 apps/api）。"""
+        return _API_ROOT / self.uploads_dir
 
 
 settings = Settings()

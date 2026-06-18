@@ -64,3 +64,24 @@ export function deleteNpc(npcId: number): Promise<RequestResult<null>> {
     method: "DELETE",
   });
 }
+
+/**
+ * 上传 NPC 头像文件。
+ *
+ * @param npcId - NPC ID
+ * @param file - 头像图片文件
+ * @returns 更新后的 NPC
+ */
+export function uploadNpcAvatar(npcId: number, file: File): Promise<RequestResult<NpcSummary>> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return request<NpcSummary>({
+    url: `/api/admin/npcs/${npcId}/avatar`,
+    method: "POST",
+    data: formData,
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+}
