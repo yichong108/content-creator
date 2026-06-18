@@ -84,6 +84,37 @@ function isAtBottom(state) {
 }
 
 /**
+ * 等待聊天消息渲染完成
+ *
+ * 页面加载后会先显示「加载中…」，API 返回后 React 会渲染气泡并自动滚到底部。
+ * 截图前需确认至少有一条消息已出现。
+ *
+ * @param {import('playwright').Locator} chatSection - 消息列表 scroll 容器
+ * @returns {Promise<void>}
+ */
+async function waitForChatReady(chatSection) {
+  await chatSection
+    .locator(".wechat-bubble-in, .wechat-bubble-out")
+    .first()
+    .waitFor({ state: "visible", timeout: 30_000 });
+}
+
+/**
+ * 将消息列表滚回顶部
+ *
+ * ChatPage 在数据加载后会自动 scrollTop = scrollHeight，若不从顶部开始
+ * 逐屏截图，循环第一次就会判定已到底部而只保存最后一段内容。
+ *
+ * @param {import('playwright').Locator} chatSection - 消息列表 scroll 容器
+ * @returns {Promise<void>}
+ */
+async function scrollToTop(chatSection) {
+  await chatSection.evaluate((el) => {
+    el.scrollTop = 0;
+  });
+}
+
+/**
  * 注入截图专用样式，改善 Chromium 桌面环境下的文字与图片锐度
  *
  * 页面 CSS 仅在 iOS/macOS 上启用 font-smoothing，截图脚本在 Windows/Linux
@@ -124,6 +155,9 @@ async function main() {
 
     const chatSection = page.locator("main > section");
     await chatSection.waitFor({ state: "visible" });
+    await waitForChatReady(chatSection);
+    await scrollToTop(chatSection);
+    await page.waitForTimeout(SCROLL_SETTLE_MS);
 
     const timestamp = formatTimestamp();
     let index = 0;
