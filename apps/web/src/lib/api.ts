@@ -57,23 +57,36 @@ export function fetchMobileSessions(): Promise<RequestResult<MobileSessionSummar
 /**
  * 从后端 API 获取聊天列表数据（默认返回移动端已开启的直播会话）。
  *
- * @param liveSessionId - 可选直播会话 ID
+ * @param sessionId - 可选会话 ID
  * @returns 业务 data 为 ChatItem 数组
  */
-export function fetchChatItems(liveSessionId?: number): Promise<RequestResult<ChatItem[]>> {
-  const params = liveSessionId != null ? { live_session_id: liveSessionId } : undefined;
+export function fetchChatItems(sessionId?: number): Promise<RequestResult<ChatItem[]>> {
+  const params = sessionId != null ? { live_session_id: sessionId } : undefined;
   return request<ChatItem[]>({ url: "/api/chat-items", params });
 }
 
 /**
  * 从后端 API 获取直播页聊天列表数据（默认返回直播端已开启的会话）。
  *
+ * @param sessionId - 可选会话 ID
  * @param since - 已有消息条数，传入时仅返回增量消息
  * @returns 业务 data 为聊天记录与总数
  */
-export function fetchLiveChatItems(since?: number): Promise<RequestResult<LiveChatItemsResponse>> {
-  const params = since != null ? { since } : undefined;
-  return request<LiveChatItemsResponse>({ url: "/api/live/chat-items", params });
+export function fetchLiveChatItems(
+  sessionId?: number,
+  since?: number,
+): Promise<RequestResult<LiveChatItemsResponse>> {
+  const params: Record<string, number> = {};
+  if (sessionId != null) {
+    params.live_session_id = sessionId;
+  }
+  if (since != null) {
+    params.since = since;
+  }
+  return request<LiveChatItemsResponse>({
+    url: "/api/live/chat-items",
+    params: Object.keys(params).length > 0 ? params : undefined,
+  });
 }
 
 /** 创建直播会话的请求体 */

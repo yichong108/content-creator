@@ -91,24 +91,34 @@ function parseWsFrame(raw: string): LiveWsFrame | null {
   }
 }
 
+const DEFAULT_TITLE = "豆包";
+
 /**
  * 直播页聊天记录加载与 WebSocket 订阅 hook。
  *
  * 先通过 REST 拉取全量消息，再订阅 WebSocket 接收新消息追加。
  *
+ * @param sessionId - 可选会话 ID；缺省时使用后端默认的已开启直播会话
  * @returns 标题、聊天记录、加载与错误状态，以及对方是否正在输入
  */
-export function useLiveChatStream() {
-  const [title, setTitle] = useState("豆包");
+export function useLiveChatStream(sessionId?: number) {
+  const [title, setTitle] = useState(DEFAULT_TITLE);
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [peerTyping, setPeerTyping] = useState(false);
-  const liveSessionIdRef = useRef<number | null>(null);
+  const sessionIdRef = useRef<number | null>(sessionId ?? null);
 
   useEffect(() => {
     let cancelled = false;
     let socket: WebSocket | null = null;
+
+    sessionIdRef.current = sessionId ?? null;
+    setTitle(DEFAULT_TITLE);
+    setChatItems([]);
+    setLoading(true);
+    setError(null);
+    setPeerTyping(false);
 
     const connectStream = () => {
       socket = new WebSocket(getLiveWebSocketUrl());
@@ -127,11 +137,18 @@ export function useLiveChatStream() {
             }
 
             const record = data as Record<string, unknown>;
-            if (typeof record.title === "string") {
-              setTitle(record.title);
+            const connectedSessionId =
+              typeof record.live_session_id === "number" ? record.live_session_id : null;
+
+            if (sessionId == null && connectedSessionId != null) {
+              sessionIdRef.current = connectedSessionId;
             }
-            if (typeof record.live_session_id === "number") {
-              liveSessionIdRef.current = record.live_session_id;
+
+            if (
+              typeof record.title === "string" &&
+              (sessionId == null || connectedSessionId === sessionId)
+            ) {
+              setTitle(record.title);
             }
             return;
           }
@@ -141,10 +158,7 @@ export function useLiveChatStream() {
               return;
             }
 
-            if (
-              liveSessionIdRef.current != null &&
-              payload.live_session_id !== liveSessionIdRef.current
-            ) {
+            if (sessionIdRef.current != null && payload.live_session_id !== sessionIdRef.current) {
               return;
             }
 
@@ -163,10 +177,7 @@ export function useLiveChatStream() {
               return;
             }
 
-            if (
-              liveSessionIdRef.current != null &&
-              payload.live_session_id !== liveSessionIdRef.current
-            ) {
+            if (sessionIdRef.current != null && payload.live_session_id !== sessionIdRef.current) {
               return;
             }
 
@@ -191,7 +202,7 @@ export function useLiveChatStream() {
       };
     };
 
-    void fetchLiveChatItems().then((res) => {
+    void fetchLiveChatItems(sessionId).then((res) => {
       if (cancelled) {
         return;
       }
@@ -203,6 +214,10 @@ export function useLiveChatStream() {
       }
 
       setChatItems(res.data.items);
+      const incoming = res.data.items.find((item) => item.kind === "incoming");
+      if (incoming?.npc_name) {
+        setTitle(incoming.npc_name);
+      }
       setLoading(false);
       setError(null);
       connectStream();
@@ -212,7 +227,7 @@ export function useLiveChatStream() {
       cancelled = true;
       socket?.close();
     };
-  }, []);
+  }, [sessionId]);
 
   return { title, chatItems, loading, error, peerTyping };
 }

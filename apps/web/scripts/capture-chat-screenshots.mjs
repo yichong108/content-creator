@@ -8,7 +8,7 @@
  *   pnpm --dir apps/web screenshot:chat
  *
  * 环境变量:
- *   CHAT_URL   - 页面地址，默认 http://localhost:3001/chatPage
+ *   CHAT_URL   - 页面地址，默认 http://localhost:3001/capturePage
  *   OUT_DIR    - 输出目录，默认 apps/web/screenshots/chat
  *   VIEWPORT_W    - 视口宽度（CSS 像素）
  *   VIEWPORT_H    - 视口高度（CSS 像素）
@@ -26,7 +26,7 @@ import { chromium } from "playwright";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.resolve(__dirname, "..");
 
-const URL = process.env.CHAT_URL ?? "http://localhost:3001/chatPage";
+const URL = process.env.CHAT_URL ?? "http://localhost:3001/capturePage";
 const OUT_DIR = process.env.OUT_DIR
   ? path.resolve(process.env.OUT_DIR)
   : path.join(WEB_ROOT, "screenshots", "chat");
@@ -102,7 +102,7 @@ async function waitForChatReady(chatSection) {
 /**
  * 将消息列表滚回顶部
  *
- * ChatPage 在数据加载后会自动 scrollTop = scrollHeight，若不从顶部开始
+ * CapturePage 在数据加载后会自动 scrollTop = scrollHeight，若不从顶部开始
  * 逐屏截图，循环第一次就会判定已到底部而只保存最后一段内容。
  *
  * @param {import('playwright').Locator} chatSection - 消息列表 scroll 容器

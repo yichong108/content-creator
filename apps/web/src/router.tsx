@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+import { CapturePage } from "@/pages/CapturePage";
 import { ChatPage } from "@/pages/ChatPage";
-import { LivePage } from "@/pages/LivePage";
 import { SessionListPage } from "@/pages/SessionListPage";
 import { StartSessionLayout } from "@/pages/StartSessionLayout";
 import { StartSessionPage } from "@/pages/StartSessionPage";
@@ -19,8 +19,8 @@ export function AppRouter() {
           <Route index element={<StartSessionPage />} />
           <Route path="select/:side" element={<StartSessionSelectNpcPage />} />
         </Route>
-        <Route path="chatPage/:liveSessionId?" element={<ChatPage />} />
-        <Route path="live" element={<LivePage />} />
+        <Route path="capturePage/:sessionId?" element={<CapturePage />} />
+        <Route path="chatPage/:sessionId?" element={<ChatPage />} />
       </Routes>
     </BrowserRouter>
   );

@@ -40,7 +40,7 @@ export function SessionChatPreviewModal({
   sessionId,
   sessionTitle,
   onClose,
-  previewPath = "/chatPage",
+  previewPath = "/capturePage",
   fetchSessionDetail,
 }: SessionChatPreviewModalProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);

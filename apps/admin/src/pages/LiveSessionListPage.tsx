@@ -114,7 +114,7 @@ export function LiveSessionListPage() {
         <div>
           <h1>直播会话</h1>
           <p className="page-desc">
-            管理用于直播演示的会话；Web /chatPage 页面展示已开启移动端的会话，/live
+            管理用于直播演示的会话；Web /capturePage 页面展示已开启移动端的会话，/chatPage
             页面展示已开启直播的会话
           </p>
         </div>
@@ -199,7 +199,7 @@ export function LiveSessionListPage() {
                     <td className="cell-desc">{liveSession.description ?? "—"}</td>
                     <td className="col-num">{liveSession.chat_item_count}</td>
                     <td className="col-switch">
-                      <label className="switch" title="开启后 Web /chatPage 页面将展示此会话">
+                      <label className="switch" title="开启后 Web /capturePage 页面将展示此会话">
                         <input
                           type="checkbox"
                           checked={liveSession.mobile_enabled}
@@ -215,7 +215,7 @@ export function LiveSessionListPage() {
                       </label>
                     </td>
                     <td className="col-switch">
-                      <label className="switch" title="开启后 Web 直播页 /live 将展示此会话">
+                      <label className="switch" title="开启后 Web 聊天页 /chatPage 将展示此会话">
                         <input
                           type="checkbox"
                           checked={liveSession.enabled}
@@ -318,7 +318,7 @@ export function LiveSessionListPage() {
         open={previewSessionId != null}
         sessionId={previewSessionId}
         sessionTitle={previewSessionTitle}
-        previewPath="/live"
+        previewPath="/chatPage"
         fetchSessionDetail={fetchPreviewSession}
         onClose={handleClosePreview}
       />

@@ -65,10 +65,10 @@ export function createChatPreviewDataMessage(payload: ChatPreviewDataPayload): C
 /**
  * 获取 web 预览页地址，用于 iframe src。
  *
- * @param path - 预览页路径，默认为 /chatPage
+ * @param path - 预览页路径，默认为 /capturePage
  * @returns web 应用完整 URL
  */
-export function getWebPreviewUrl(path = "/chatPage"): string {
+export function getWebPreviewUrl(path = "/capturePage"): string {
   const base = import.meta.env.VITE_WEB_PREVIEW_URL ?? "http://localhost:3001";
   return new URL(path, base.endsWith("/") ? base : `${base}/`).href;
 }

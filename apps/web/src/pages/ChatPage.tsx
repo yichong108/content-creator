@@ -1,26 +1,21 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { WechatChatPage } from "@/components/WechatChatPage";
-import type { ChatItem } from "@/data/chat-items";
 import { useChatPreviewPostMessage } from "@/hooks/useChatPreviewPostMessage";
-import { fetchChatItems } from "@/lib/api";
-import { getRequestErrorMessage } from "@/lib/request";
-
-const DEFAULT_TITLE = "豆包";
+import { useLiveChatStream } from "@/hooks/useLiveChatStream";
 
 /**
- * 解析路由中的直播会话 ID。
+ * 解析路由中的会话 ID。
  *
- * @param liveSessionId - 路由参数原始值
+ * @param sessionId - 路由参数原始值
  * @returns 合法的正整数 ID；缺失或非法时返回 undefined
  */
-function parseLiveSessionId(liveSessionId: string | undefined): number | undefined {
-  if (!liveSessionId) {
+function parseSessionId(sessionId: string | undefined): number | undefined {
+  if (!sessionId) {
     return undefined;
   }
 
-  const parsed = Number(liveSessionId);
+  const parsed = Number(sessionId);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return undefined;
   }
@@ -29,72 +24,35 @@ function parseLiveSessionId(liveSessionId: string | undefined): number | undefin
 }
 
 /**
- * 微信聊天页
+ * 聊天页
  *
  * 负责从 API 或 iframe postMessage 获取聊天记录，并传给 WechatChatPage 渲染。
+ * 非嵌入模式下通过 WebSocket 接收 running 会话的新消息追加。
  */
 export function ChatPage() {
   const navigate = useNavigate();
-  const { liveSessionId: liveSessionIdParam } = useParams<{ liveSessionId?: string }>();
-  const liveSessionId = parseLiveSessionId(liveSessionIdParam);
+  const { sessionId: sessionIdParam } = useParams<{ sessionId?: string }>();
+  const sessionId = parseSessionId(sessionIdParam);
   const preview = useChatPreviewPostMessage();
-  const [chatItems, setChatItems] = useState<ChatItem[]>([]);
-  const [loading, setLoading] = useState(!preview.embedded);
-  const [error, setError] = useState<string | null>(null);
-  const [sessionTitle, setSessionTitle] = useState<string | null>(null);
+  const live = useLiveChatStream(sessionId);
 
-  useEffect(() => {
-    if (preview.embedded) {
-      if (preview.received) {
-        setChatItems(preview.chatItems);
-        setLoading(false);
-        setError(null);
-      }
-      return;
-    }
+  if (preview.embedded) {
+    const title = preview.received ? preview.title : "豆包";
+    const loading = !preview.received;
+    const chatItems = preview.received ? preview.chatItems : [];
+    const error = null;
 
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setSessionTitle(null);
-
-    fetchChatItems(liveSessionId)
-      .then((res) => {
-        if (cancelled) {
-          return;
-        }
-
-        if (!res.ok) {
-          setError(getRequestErrorMessage(res));
-          setChatItems([]);
-          return;
-        }
-
-        setChatItems(res.data ?? []);
-        const incoming = (res.data ?? []).find((item) => item.kind === "incoming");
-        setSessionTitle(incoming?.npc_name ?? DEFAULT_TITLE);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [preview.embedded, preview.received, preview.chatItems, liveSessionId]);
-
-  const title = preview.embedded ? preview.title : (sessionTitle ?? DEFAULT_TITLE);
-  const handleBack = preview.embedded ? undefined : () => navigate("/");
+    return <WechatChatPage title={title} chatItems={chatItems} loading={loading} error={error} />;
+  }
 
   return (
     <WechatChatPage
-      title={title}
-      chatItems={chatItems}
-      loading={loading}
-      error={error}
-      onBack={handleBack}
+      title={live.title}
+      chatItems={live.chatItems}
+      loading={live.loading}
+      error={live.error}
+      peerTyping={live.peerTyping}
+      onBack={() => navigate("/")}
     />
   );
 }
