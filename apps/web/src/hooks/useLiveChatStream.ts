@@ -91,7 +91,22 @@ function parseWsFrame(raw: string): LiveWsFrame | null {
   }
 }
 
-const DEFAULT_TITLE = "豆包";
+const DEFAULT_TITLE = "会话";
+
+/**
+ * 格式化聊天页顶部标题为「会话(N)」，N 为参与会话的 NPC 数量。
+ *
+ * @param _title - 会话标题（ChatPage 顶部不展示，保留参数供调用方传入）
+ * @param npcCount - 参与会话的 NPC 数量
+ * @returns 展示用标题
+ */
+export function formatChatPageTitle(_title: string, npcCount: number): string {
+  if (npcCount <= 0) {
+    return "会话";
+  }
+
+  return `会话(${npcCount})`;
+}
 
 /**
  * 直播页聊天记录加载与 WebSocket 订阅 hook。
@@ -99,10 +114,11 @@ const DEFAULT_TITLE = "豆包";
  * 先通过 REST 拉取全量消息，再订阅 WebSocket 接收新消息追加。
  *
  * @param sessionId - 可选会话 ID；缺省时使用后端默认的已开启直播会话
- * @returns 标题、聊天记录、加载与错误状态，以及对方是否正在输入
+ * @returns 标题、NPC 数量、聊天记录、加载与错误状态，以及对方是否正在输入
  */
 export function useLiveChatStream(sessionId?: number) {
   const [title, setTitle] = useState(DEFAULT_TITLE);
+  const [npcCount, setNpcCount] = useState(0);
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +131,7 @@ export function useLiveChatStream(sessionId?: number) {
 
     sessionIdRef.current = sessionId ?? null;
     setTitle(DEFAULT_TITLE);
+    setNpcCount(0);
     setChatItems([]);
     setLoading(true);
     setError(null);
@@ -214,10 +231,8 @@ export function useLiveChatStream(sessionId?: number) {
       }
 
       setChatItems(res.data.items);
-      const incoming = res.data.items.find((item) => item.kind === "incoming");
-      if (incoming?.npc_name) {
-        setTitle(incoming.npc_name);
-      }
+      setTitle(res.data.title);
+      setNpcCount(res.data.npc_count);
       setLoading(false);
       setError(null);
       connectStream();
@@ -229,5 +244,5 @@ export function useLiveChatStream(sessionId?: number) {
     };
   }, [sessionId]);
 
-  return { title, chatItems, loading, error, peerTyping };
+  return { title, npcCount, chatItems, loading, error, peerTyping };
 }

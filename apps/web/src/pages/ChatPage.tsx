@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { WechatChatMessageList } from "@/components/WechatChatMessageList";
-import { useLiveChatStream } from "@/hooks/useLiveChatStream";
+import { formatChatPageTitle, useLiveChatStream } from "@/hooks/useLiveChatStream";
 
 /**
  * 解析路由中的会话 ID。
@@ -68,7 +68,7 @@ export function ChatPage() {
           />
         </button>
         <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">
-          {live.title}
+          {formatChatPageTitle(live.title, live.npcCount)}
         </h1>
         <button
           type="button"

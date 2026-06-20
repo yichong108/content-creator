@@ -9,6 +9,10 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 export interface LiveChatItemsResponse {
   items: ChatItem[];
   total: number;
+  /** 会话标题 */
+  title: string;
+  /** 参与会话的 NPC 数量（对方 + 己方） */
+  npc_count: number;
 }
 
 /** WebSocket message 事件载荷 */

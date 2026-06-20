@@ -21,6 +21,8 @@ class LiveChatItemsAppendResponse(BaseModel):
 
     items: list[ChatItem] = Field(description="since 索引之后的新消息；无 since 时为全部消息")
     total: int = Field(description="当前会话聊天记录总条数")
+    title: str = Field(description="会话标题")
+    npc_count: int = Field(description="会话参与 NPC 数量（对方 + 己方）")
 
 
 class LiveWsConnectedPayload(BaseModel):

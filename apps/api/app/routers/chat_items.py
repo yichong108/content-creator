@@ -87,6 +87,39 @@ async def _chat_items_from_live_session_row(row: LiveSessionRow, db: AsyncSessio
     return normalize_session_chat_items(row.chat_items, peer_rows, self_row)
 
 
+def _session_npc_count(row: LiveSessionRow) -> int:
+    """统计会话参与 NPC 数量（对方列表 + 己方）。
+
+    Args:
+        row: 直播会话 ORM 行。
+
+    Returns:
+        参与会话的 NPC 总数。
+    """
+    count = len(list(row.peer_npc_ids or []))
+    if row.self_npc_id is not None:
+        count += 1
+    return count
+
+
+def _live_chat_items_response(row: LiveSessionRow, items: list[ChatItem]) -> LiveChatItemsAppendResponse:
+    """将会话行与消息列表组装为直播聊天拉取响应。
+
+    Args:
+        row: 直播会话 ORM 行。
+        items: 本次返回的消息列表。
+
+    Returns:
+        含标题与 NPC 数量的响应体。
+    """
+    return LiveChatItemsAppendResponse(
+        items=items,
+        total=len(row.chat_items),
+        title=row.title,
+        npc_count=_session_npc_count(row),
+    )
+
+
 def _extract_last_message_preview(chat_items: list[dict[str, object]]) -> str | None:
     """从原始聊天记录中提取最近一条可展示的消息文本。
 
@@ -238,12 +271,12 @@ async def list_live_chat_items(
     row = await _resolve_live_session_row(db, live_session_id)
     all_items = await _chat_items_from_live_session_row(row, db)
     if since is None:
-        return ok(LiveChatItemsAppendResponse(items=all_items, total=len(all_items)))
+        return ok(_live_chat_items_response(row, all_items))
 
     if since >= len(all_items):
-        return ok(LiveChatItemsAppendResponse(items=[], total=len(all_items)))
+        return ok(_live_chat_items_response(row, []))
 
-    return ok(LiveChatItemsAppendResponse(items=all_items[since:], total=len(all_items)))
+    return ok(_live_chat_items_response(row, all_items[since:]))
 
 
 async def _load_enabled_live_session() -> LiveSessionRow | None:
