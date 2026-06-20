@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.models.live_session import LiveSessionRow
-from app.schemas.chat_item import ChatItem
 from app.schemas.chat_items_generate import GenerateChatItemsRequest, GenerateChatItemsResponse
 from app.schemas.error_codes import ERR_BAD_REQUEST
 from app.schemas.live_session import (
@@ -31,6 +30,7 @@ from app.services.ai_errors import (
 )
 from app.services.ai_http import fail_from_ai_error
 from app.services.ai_provider import validate_ai_config
+from app.services.chat_item_npc import normalize_session_chat_items
 from app.services.chat_items_generator import generate_chat_items
 from app.services.live_session_events import live_session_event_hub
 from app.services.live_session_npcs import (
@@ -80,8 +80,9 @@ async def _to_detail(row: LiveSessionRow, db: AsyncSession) -> LiveSessionDetail
     Returns:
         含 chat_items 的直播会话详情。
     """
-    chat_items = [ChatItem.model_validate(item) for item in row.chat_items]
     peer_npc_ids = list(row.peer_npc_ids or [])
+    peer_rows, self_row = await resolve_session_npc_rows(db, peer_npc_ids, row.self_npc_id)
+    chat_items = normalize_session_chat_items(row.chat_items, peer_rows, self_row)
     peer_npcs = await load_npc_summaries(db, peer_npc_ids)
     self_npc = await load_npc_summary(db, row.self_npc_id)
     return LiveSessionDetail(
@@ -175,11 +176,13 @@ async def generate_live_session_title_endpoint(
 @router.post("/generate-chat-items", response_model=ApiResponse[GenerateChatItemsResponse])
 async def generate_live_session_chat_items(
     payload: GenerateChatItemsRequest,
+    db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[GenerateChatItemsResponse | None]:
-    """根据直播会话标题自动生成聊天记录 JSON。
+    """根据直播会话标题与关联 NPC 人设自动生成聊天记录 JSON。
 
     Args:
-        payload: 含非空标题的请求体。
+        payload: 含标题、描述与 NPC ID 的请求体。
+        db: 异步数据库会话。
 
     Returns:
         统一 ``ApiResponse`` 包裹的聊天记录数组。
@@ -192,8 +195,19 @@ async def generate_live_session_chat_items(
     if not title:
         return fail(ERR_BAD_REQUEST, "标题不能为空")
 
+    peer_npc_ids = dedupe_npc_ids(payload.peer_npc_ids)
+    if not peer_npc_ids and payload.self_npc_id is None:
+        return fail(ERR_BAD_REQUEST, "请先选择对方或己方 NPC，以便按人设生成聊天记录")
+
     try:
-        items = await generate_chat_items(title)
+        peer_rows, self_row = await resolve_session_npc_rows(db, peer_npc_ids, payload.self_npc_id)
+    except ValueError as exc:
+        return fail(ERR_BAD_REQUEST, str(exc))
+
+    description = payload.description.strip() if payload.description else None
+
+    try:
+        items = await generate_chat_items(title, description, peer_rows, self_row)
     except (
         AiConfigurationError,
         AiAuthenticationError,

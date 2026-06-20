@@ -27,6 +27,9 @@ export function parseChatItemsJson(raw: string): ParseChatItemsResult {
 
       const kind = (item as { kind?: unknown }).kind;
       const text = (item as { text?: unknown }).text;
+      const npcId = (item as { npc_id?: unknown }).npc_id;
+      const npcName = (item as { npc_name?: unknown }).npc_name;
+      const npcAvatarUrl = (item as { npc_avatar_url?: unknown }).npc_avatar_url;
 
       if (typeof kind !== "string" || !CHAT_ITEM_KINDS.includes(kind as ChatItemKind)) {
         return {
@@ -39,7 +42,39 @@ export function parseChatItemsJson(raw: string): ParseChatItemsResult {
         return { ok: false, message: `第 ${index + 1} 条 text 不能为空` };
       }
 
-      items.push({ kind: kind as ChatItemKind, text });
+      if (kind === "incoming" || kind === "outgoing") {
+        if (typeof npcId !== "number" || !Number.isInteger(npcId) || npcId <= 0) {
+          return { ok: false, message: `第 ${index + 1} 条 ${kind} 消息缺少有效 npc_id` };
+        }
+
+        if (typeof npcName !== "string" || npcName.trim().length === 0) {
+          return { ok: false, message: `第 ${index + 1} 条 ${kind} 消息缺少 npc_name` };
+        }
+
+        if (typeof npcAvatarUrl !== "string" || npcAvatarUrl.trim().length === 0) {
+          return { ok: false, message: `第 ${index + 1} 条 ${kind} 消息缺少 npc_avatar_url` };
+        }
+
+        const npcInfo = {
+          npc_id: npcId,
+          npc_name: npcName.trim(),
+          npc_avatar_url: npcAvatarUrl.trim(),
+        };
+
+        if (kind === "incoming") {
+          items.push({ kind: "incoming", text, ...npcInfo });
+        } else {
+          items.push({ kind: "outgoing", text, ...npcInfo });
+        }
+        continue;
+      }
+
+      if (kind === "timestamp") {
+        items.push({ kind: "timestamp", text });
+        continue;
+      }
+
+      items.push({ kind: "system", text });
     }
 
     return { ok: true, data: items };

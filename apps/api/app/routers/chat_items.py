@@ -1,5 +1,4 @@
 import asyncio
-from typing import Literal, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
@@ -11,11 +10,11 @@ from app.models.session import SessionRow
 from app.schemas.chat_item import ChatItem
 from app.schemas.live_status import LiveChatItemsAppendResponse, LiveStatusResponse
 from app.schemas.response import ApiResponse, ok
+from app.services.chat_item_npc import normalize_session_chat_items
 from app.services.live_session_events import LIVE_WS_HEARTBEAT_SEC, live_session_event_hub
+from app.services.live_session_npcs import resolve_session_npc_rows
 
 router = APIRouter(tags=["chat-items"])
-
-ChatItemKind = Literal["timestamp", "system", "incoming", "outgoing"]
 
 
 async def _resolve_mobile_session_row(
@@ -78,9 +77,24 @@ async def _resolve_live_session_row(
     return row
 
 
-def _chat_items_from_row(chat_items: list[dict[str, str]]) -> list[ChatItem]:
-    """将 chat_items JSON 转为 ChatItem 列表。"""
-    return [ChatItem(kind=cast(ChatItemKind, item["kind"]), text=item["text"]) for item in chat_items]
+async def _chat_items_from_session_row(row: SessionRow, db: AsyncSession) -> list[ChatItem]:
+    """将会话行中的聊天记录规范化为 ChatItem 列表。"""
+    peer_rows, self_row = await resolve_session_npc_rows(
+        db,
+        list(row.peer_npc_ids or []),
+        row.self_npc_id,
+    )
+    return normalize_session_chat_items(row.chat_items, peer_rows, self_row)
+
+
+async def _chat_items_from_live_session_row(row: LiveSessionRow, db: AsyncSession) -> list[ChatItem]:
+    """将直播会话行中的聊天记录规范化为 ChatItem 列表。"""
+    peer_rows, self_row = await resolve_session_npc_rows(
+        db,
+        list(row.peer_npc_ids or []),
+        row.self_npc_id,
+    )
+    return normalize_session_chat_items(row.chat_items, peer_rows, self_row)
 
 
 @router.get("/chat-items", response_model=ApiResponse[list[ChatItem]])
@@ -101,7 +115,7 @@ async def list_chat_items(
         HTTPException: 会话不存在时返回 404。
     """
     row = await _resolve_mobile_session_row(db, session_id)
-    return ok(_chat_items_from_row(row.chat_items))
+    return ok(await _chat_items_from_session_row(row, db))
 
 
 @router.get("/live/status", response_model=ApiResponse[LiveStatusResponse])
@@ -160,7 +174,7 @@ async def list_live_chat_items(
         HTTPException: 直播会话不存在时返回 404。
     """
     row = await _resolve_live_session_row(db, live_session_id)
-    all_items = _chat_items_from_row(row.chat_items)
+    all_items = await _chat_items_from_live_session_row(row, db)
     if since is None:
         return ok(LiveChatItemsAppendResponse(items=all_items, total=len(all_items)))
 

@@ -107,9 +107,20 @@ export function LiveSessionForm({
       return;
     }
 
+    if (peerNpcIds.length === 0 && selfNpcId === null) {
+      setFieldError("请先选择对方或己方 NPC，以便按人设生成聊天记录");
+      return;
+    }
+
     setGeneratingChatItems(true);
 
-    const result = await generateLiveChatItems(trimmedTitle);
+    const trimmedDescription = formDescription.trim();
+    const result = await generateLiveChatItems({
+      title: trimmedTitle,
+      description: trimmedDescription.length > 0 ? trimmedDescription : null,
+      peer_npc_ids: peerNpcIds,
+      self_npc_id: selfNpcId,
+    });
 
     setGeneratingChatItems(false);
 
@@ -221,8 +232,8 @@ export function LiveSessionForm({
             </button>
           </div>
           <span className="form-hint">
-            数组格式，每项包含 kind（timestamp/system/incoming/outgoing）与 text；incoming
-            为非己方，outgoing 为己方；可根据标题自动生成
+            数组格式，每项包含 kind（timestamp/system/incoming/outgoing）与 text；incoming/outgoing
+            还需 npc_id、npc_name、npc_avatar_url；需先选择 NPC，再按人设与标题自动生成
           </span>
           <textarea
             className="form-textarea form-textarea--code"

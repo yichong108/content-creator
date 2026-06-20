@@ -129,17 +129,20 @@ export function generateLiveSessionTitle(payload: {
 }
 
 /**
- * 根据标题自动生成直播聊天记录 JSON。
+ * 根据标题与 NPC 人设自动生成直播聊天记录 JSON。
  *
- * @param title - 非空直播会话标题，作为对话主题
+ * @param payload - 标题、描述与关联 NPC ID
  * @returns 生成的聊天记录数组
  */
-export function generateLiveChatItems(
-  title: string,
-): Promise<RequestResult<{ chat_items: ChatItem[] }>> {
+export function generateLiveChatItems(payload: {
+  title: string;
+  description?: string | null;
+  peer_npc_ids: number[];
+  self_npc_id: number | null;
+}): Promise<RequestResult<{ chat_items: ChatItem[] }>> {
   return request<{ chat_items: ChatItem[] }>({
     url: "/api/admin/live-sessions/generate-chat-items",
     method: "POST",
-    data: { title },
+    data: payload,
   });
 }

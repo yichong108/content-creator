@@ -1,13 +1,13 @@
 """会话与 NPC 关联及聊天记录合并工具。"""
 
-from typing import Literal
+from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.npc import NpcRow
-from app.schemas.chat_item import ChatItem
 from app.schemas.npc import NpcSummary
+from app.services.chat_item_npc import normalize_npc_owned_chat_items, npc_metadata_from_row
 from app.services.npc_tags import normalize_npc_tags
 
 NpcSide = Literal["peer", "self"]
@@ -33,10 +33,11 @@ def dedupe_npc_ids(npc_ids: list[int]) -> list[int]:
 
 
 def extract_npc_chat_items_for_side(
-    chat_items: list[dict[str, str]] | None,
+    chat_items: list[dict[str, Any]] | None,
     side: NpcSide,
-) -> list[dict[str, str]]:
-    """从 NPC 聊天记录中提取指定侧别的消息。
+    npc_row: NpcRow,
+) -> list[dict[str, Any]]:
+    """从 NPC 聊天记录中提取指定侧别的消息，并写入 NPC 元数据。
 
     peer 侧保留 incoming；self 侧保留 outgoing。timestamp/system 两侧均保留。
     若 NPC 数据仍含对侧 kind，会转换为当前侧别以兼容旧数据。
@@ -44,23 +45,27 @@ def extract_npc_chat_items_for_side(
     Args:
         chat_items: NPC 原始聊天记录。
         side: ``peer`` 表示对方侧，``self`` 表示己方。
+        npc_row: 来源 NPC 行，用于写入 ``npc_id`` / ``npc_name``。
 
     Returns:
         过滤并规范化后的 chat_items 字典列表。
     """
     target_kind = "incoming" if side == "peer" else "outgoing"
     alternate_kind = "outgoing" if side == "peer" else "incoming"
-    extracted: list[dict[str, str]] = []
+    extracted: list[dict[str, Any]] = []
 
     for item in chat_items or []:
         kind = item.get("kind")
         text = item.get("text", "")
+        if not isinstance(kind, str) or not isinstance(text, str):
+            continue
+
         if kind in ("timestamp", "system"):
             extracted.append({"kind": kind, "text": text})
         elif kind == target_kind:
-            extracted.append({"kind": kind, "text": text})
+            extracted.append({"kind": kind, "text": text, **npc_metadata_from_row(npc_row)})
         elif kind == alternate_kind:
-            extracted.append({"kind": target_kind, "text": text})
+            extracted.append({"kind": target_kind, "text": text, **npc_metadata_from_row(npc_row)})
 
     return extracted
 
@@ -68,7 +73,7 @@ def extract_npc_chat_items_for_side(
 def merge_session_npc_chat_items(
     peer_npc_rows: list[NpcRow],
     self_npc_row: NpcRow | None,
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """按对方/己方 NPC 合并聊天记录。
 
     Args:
@@ -78,12 +83,12 @@ def merge_session_npc_chat_items(
     Returns:
         合并后的 chat_items 字典列表（先各对方 NPC，后己方 NPC）。
     """
-    merged: list[dict[str, str]] = []
+    merged: list[dict[str, Any]] = []
 
     for peer_row in peer_npc_rows:
-        merged.extend(extract_npc_chat_items_for_side(peer_row.chat_items, "peer"))
+        merged.extend(extract_npc_chat_items_for_side(peer_row.chat_items, "peer", peer_row))
     if self_npc_row is not None:
-        merged.extend(extract_npc_chat_items_for_side(self_npc_row.chat_items, "self"))
+        merged.extend(extract_npc_chat_items_for_side(self_npc_row.chat_items, "self", self_npc_row))
 
     return merged
 
@@ -97,7 +102,7 @@ def npc_row_to_summary(row: NpcRow) -> NpcSummary:
     Returns:
         含 chat_items 的 NPC 摘要。
     """
-    chat_items = [ChatItem.model_validate(item) for item in (row.chat_items or [])]
+    chat_items = normalize_npc_owned_chat_items(row.chat_items, row)
     return NpcSummary(
         id=row.id,
         name=row.name,

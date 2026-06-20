@@ -14,8 +14,10 @@ from app.services.ai_errors import (
     AiResponseError,
     AiUnavailableError,
 )
+from app.services.chat_item_npc import normalize_session_chat_items
 from app.services.live_chat_items_generator import generate_live_chat_item
 from app.services.live_session_events import live_session_event_hub
+from app.services.live_session_npcs import resolve_session_npc_rows
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +102,15 @@ class LiveSessionRunner:
                 return False
 
             live_session_id = row.id
-            existing_items = [ChatItem.model_validate(item) for item in row.chat_items]
+            try:
+                peer_rows, self_row = await resolve_session_npc_rows(
+                    db,
+                    list(row.peer_npc_ids or []),
+                    row.self_npc_id,
+                )
+            except ValueError:
+                return False
+            existing_items = normalize_session_chat_items(row.chat_items, peer_rows, self_row)
             next_speaker = _predict_next_speaker(existing_items)
 
         await live_session_event_hub.publish(
@@ -120,7 +130,20 @@ class LiveSessionRunner:
                     return False
 
                 try:
-                    new_item = await generate_live_chat_item(row.title, existing_items)
+                    peer_rows, self_row = await resolve_session_npc_rows(
+                        db,
+                        list(row.peer_npc_ids or []),
+                        row.self_npc_id,
+                    )
+                    new_item = await generate_live_chat_item(
+                        row.title,
+                        existing_items,
+                        peer_rows,
+                        self_row,
+                    )
+                except ValueError as exc:
+                    logger.warning("直播会话 %s 续写跳过（NPC 解析失败）: %s", live_session_id, exc)
+                    return False
                 except (
                     AiConfigurationError,
                     AiAuthenticationError,

@@ -1,7 +1,27 @@
-import type { ChatItem } from "@/types/chat-item";
+import type { ChatItem, ChatItemNpcInfo } from "@/types/chat-item";
 import type { NpcSummary } from "@/types/npc";
+import { resolveNpcAvatarUrlForChatItem } from "@/lib/npc-avatar";
 
 type NpcSide = "peer" | "self";
+
+function npcMetadataFromSummary(npc: NpcSummary): ChatItemNpcInfo {
+  return {
+    npc_id: npc.id,
+    npc_name: npc.name,
+    npc_avatar_url: resolveNpcAvatarUrlForChatItem(npc.avatar_url, npc.name),
+  };
+}
+
+function tagChatItemWithNpc(item: ChatItem, npc: NpcSummary): ChatItem {
+  if (item.kind !== "incoming" && item.kind !== "outgoing") {
+    return item;
+  }
+
+  return {
+    ...item,
+    ...npcMetadataFromSummary(npc),
+  };
+}
 
 /**
  * 从 NPC 聊天记录中提取指定侧别的消息。
@@ -11,12 +31,14 @@ type NpcSide = "peer" | "self";
  *
  * @param items - NPC 原始聊天记录
  * @param side - peer 表示对方侧，self 表示己方
+ * @param npc - 来源 NPC
  * @returns 过滤并规范化后的聊天记录
  */
-function extractNpcChatItemsForSide(items: ChatItem[], side: NpcSide): ChatItem[] {
+function extractNpcChatItemsForSide(items: ChatItem[], side: NpcSide, npc: NpcSummary): ChatItem[] {
   const targetKind: ChatItem["kind"] = side === "peer" ? "incoming" : "outgoing";
   const alternateKind: ChatItem["kind"] = side === "peer" ? "outgoing" : "incoming";
   const extracted: ChatItem[] = [];
+  const metadata = npcMetadataFromSummary(npc);
 
   for (const item of items) {
     if (item.kind === "timestamp" || item.kind === "system") {
@@ -25,12 +47,16 @@ function extractNpcChatItemsForSide(items: ChatItem[], side: NpcSide): ChatItem[
     }
 
     if (item.kind === targetKind) {
-      extracted.push(item);
+      extracted.push(tagChatItemWithNpc(item, npc));
       continue;
     }
 
     if (item.kind === alternateKind) {
-      extracted.push({ kind: targetKind, text: item.text });
+      if (targetKind === "incoming") {
+        extracted.push({ kind: "incoming", text: item.text, ...metadata });
+      } else {
+        extracted.push({ kind: "outgoing", text: item.text, ...metadata });
+      }
     }
   }
 
@@ -55,14 +81,14 @@ export function mergeNpcChatItems(
   for (const peerNpcId of peerNpcIds) {
     const peerNpc = npcs.find((item) => item.id === peerNpcId);
     if (peerNpc?.chat_items?.length) {
-      merged.push(...extractNpcChatItemsForSide(peerNpc.chat_items, "peer"));
+      merged.push(...extractNpcChatItemsForSide(peerNpc.chat_items, "peer", peerNpc));
     }
   }
 
   if (selfNpcId != null) {
     const selfNpc = npcs.find((item) => item.id === selfNpcId);
     if (selfNpc?.chat_items?.length) {
-      merged.push(...extractNpcChatItemsForSide(selfNpc.chat_items, "self"));
+      merged.push(...extractNpcChatItemsForSide(selfNpc.chat_items, "self", selfNpc));
     }
   }
 

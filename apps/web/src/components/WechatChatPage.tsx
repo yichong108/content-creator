@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { WechatMessageText } from "@/components/WechatMessageText";
 import type { ChatItem } from "@/data/chat-items";
+import { resolveChatItemAvatarUrl } from "@/lib/chat-item-avatar";
 
 export type WechatChatPageProps = {
   /** 聊天页顶部标题（对方昵称） */
@@ -16,10 +17,8 @@ export type WechatChatPageProps = {
   peerTyping?: boolean;
 };
 
-function Avatar({ variant }: { variant: "self" | "other" }) {
+function MessageAvatar({ src, alt }: { src: string; alt: string }) {
   const size = Math.round(18 + 17 * 1.4);
-  const src = variant === "self" ? "/avatar-self.png" : "/avatar-other.png";
-  const alt = variant === "self" ? "我的头像" : "对方头像";
 
   return (
     <img
@@ -30,6 +29,12 @@ function Avatar({ variant }: { variant: "self" | "other" }) {
       className="h-[calc(18px+17px*1.4)] w-[calc(18px+17px*1.4)] shrink-0 rounded-[4px] object-cover"
     />
   );
+}
+
+function FallbackAvatar({ variant }: { variant: "self" | "other" }) {
+  const src = variant === "self" ? "/avatar-self.png" : "/avatar-other.png";
+  const alt = variant === "self" ? "我的头像" : "对方头像";
+  return <MessageAvatar src={src} alt={alt} />;
 }
 
 function ChatRow({ item }: { item: ChatItem }) {
@@ -52,7 +57,10 @@ function ChatRow({ item }: { item: ChatItem }) {
   if (item.kind === "incoming") {
     return (
       <div className="flex items-start gap-[var(--wechat-avatar-gap)] py-1.5">
-        <Avatar variant="other" />
+        <MessageAvatar
+          src={resolveChatItemAvatarUrl(item.npc_avatar_url)}
+          alt={`${item.npc_name} 头像`}
+        />
         <div className="wechat-bubble-in">
           <WechatMessageText text={item.text} />
         </div>
@@ -62,7 +70,10 @@ function ChatRow({ item }: { item: ChatItem }) {
 
   return (
     <div className="flex flex-row-reverse items-start gap-[var(--wechat-avatar-gap)] py-1.5">
-      <Avatar variant="self" />
+      <MessageAvatar
+        src={resolveChatItemAvatarUrl(item.npc_avatar_url)}
+        alt={`${item.npc_name} 头像`}
+      />
       <div className="wechat-bubble-out">
         <WechatMessageText text={item.text} />
       </div>
@@ -73,7 +84,7 @@ function ChatRow({ item }: { item: ChatItem }) {
 function PeerTypingRow() {
   return (
     <div className="flex items-start gap-[var(--wechat-avatar-gap)] py-1.5" aria-live="polite">
-      <Avatar variant="other" />
+      <FallbackAvatar variant="other" />
       <div className="wechat-bubble-in wechat-typing-bubble">
         <span className="wechat-typing-dots" aria-hidden>
           <span />
