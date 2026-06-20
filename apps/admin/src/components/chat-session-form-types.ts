@@ -3,4 +3,5 @@ export interface ChatSessionFormValues {
   title: string;
   description: string;
   chatItemsJson: string;
+  npcIds?: number[];
 }

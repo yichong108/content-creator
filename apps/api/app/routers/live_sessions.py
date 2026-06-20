@@ -33,6 +33,12 @@ from app.services.ai_http import fail_from_ai_error
 from app.services.ai_provider import validate_ai_config
 from app.services.chat_items_generator import generate_chat_items
 from app.services.live_session_events import live_session_event_hub
+from app.services.live_session_npcs import (
+    dedupe_npc_ids,
+    fetch_npc_rows_by_ids,
+    load_npc_summaries,
+    merge_npc_chat_items,
+)
 from app.services.live_session_runner import live_session_runner
 from app.services.session_title_generator import generate_session_title
 
@@ -55,6 +61,7 @@ def _to_summary(row: LiveSessionRow) -> LiveSessionSummary:
         title=row.title,
         description=row.description,
         chat_item_count=len(row.chat_items),
+        npc_ids=list(row.npc_ids or []),
         enabled=row.enabled,
         running=row.running,
         created_at=row.created_at,
@@ -62,7 +69,7 @@ def _to_summary(row: LiveSessionRow) -> LiveSessionSummary:
     )
 
 
-def _to_detail(row: LiveSessionRow) -> LiveSessionDetail:
+async def _to_detail(row: LiveSessionRow, db: AsyncSession) -> LiveSessionDetail:
     """将 ORM 行转换为直播会话详情。
 
     Args:
@@ -72,16 +79,20 @@ def _to_detail(row: LiveSessionRow) -> LiveSessionDetail:
         含 chat_items 的直播会话详情。
     """
     chat_items = [ChatItem.model_validate(item) for item in row.chat_items]
+    npc_ids = list(row.npc_ids or [])
+    npcs = await load_npc_summaries(db, npc_ids)
     return LiveSessionDetail(
         id=row.id,
         title=row.title,
         description=row.description,
         chat_item_count=len(chat_items),
+        npc_ids=npc_ids,
         enabled=row.enabled,
         running=row.running,
         created_at=row.created_at,
         updated_at=row.updated_at,
         chat_items=chat_items,
+        npcs=npcs,
     )
 
 
@@ -209,7 +220,7 @@ async def get_live_session(
         HTTPException: 直播会话不存在时返回 404。
     """
     row = await _get_live_session_row(live_session_id, db)
-    return ok(_to_detail(row))
+    return ok(await _to_detail(row, db))
 
 
 @router.post("", response_model=ApiResponse[LiveSessionDetail])
@@ -226,15 +237,27 @@ async def create_live_session(
     Returns:
         统一 ``ApiResponse`` 包裹的新建直播会话详情。
     """
+    npc_ids = dedupe_npc_ids(payload.npc_ids)
+    try:
+        await fetch_npc_rows_by_ids(db, npc_ids)
+    except ValueError as exc:
+        return fail(ERR_BAD_REQUEST, str(exc))
+
+    chat_items = [item.model_dump() for item in payload.chat_items]
+    if not chat_items and npc_ids:
+        npc_rows = await fetch_npc_rows_by_ids(db, npc_ids)
+        chat_items = merge_npc_chat_items(npc_rows)
+
     row = LiveSessionRow(
         title=payload.title,
         description=payload.description,
-        chat_items=[item.model_dump() for item in payload.chat_items],
+        npc_ids=npc_ids,
+        chat_items=chat_items,
     )
     db.add(row)
     await db.commit()
     await db.refresh(row)
-    return ok(_to_detail(row))
+    return ok(await _to_detail(row, db))
 
 
 @router.put("/{live_session_id}", response_model=ApiResponse[LiveSessionDetail])
@@ -262,12 +285,30 @@ async def update_live_session(
         row.title = payload.title
     if payload.description is not None:
         row.description = payload.description
-    if payload.chat_items is not None:
+
+    if payload.add_npc_ids:
+        add_npc_ids = dedupe_npc_ids(payload.add_npc_ids)
+        existing_npc_ids = list(row.npc_ids or [])
+        duplicate_ids = [npc_id for npc_id in add_npc_ids if npc_id in existing_npc_ids]
+        if duplicate_ids:
+            return fail(
+                ERR_BAD_REQUEST,
+                f"NPC 已关联，无法重复添加: {', '.join(str(npc_id) for npc_id in duplicate_ids)}",
+            )
+
+        try:
+            new_npc_rows = await fetch_npc_rows_by_ids(db, add_npc_ids)
+        except ValueError as exc:
+            return fail(ERR_BAD_REQUEST, str(exc))
+
+        row.npc_ids = [*existing_npc_ids, *add_npc_ids]
+        row.chat_items = [*row.chat_items, *merge_npc_chat_items(new_npc_rows)]
+    elif payload.chat_items is not None:
         row.chat_items = [item.model_dump() for item in payload.chat_items]
 
     await db.commit()
     await db.refresh(row)
-    return ok(_to_detail(row))
+    return ok(await _to_detail(row, db))
 
 
 @router.patch("/{live_session_id}/enabled", response_model=ApiResponse[LiveSessionSummary])

@@ -7,13 +7,13 @@ from app.models.npc import NpcRow
 from app.schemas.error_codes import ERR_BAD_REQUEST
 from app.schemas.npc import NpcCreate, NpcSummary, NpcUpdate
 from app.schemas.response import ApiResponse, fail, ok
+from app.services.live_session_npcs import npc_row_to_summary
 from app.services.npc_avatar import (
     build_default_avatar_url,
     delete_local_avatar_file,
     is_local_npc_avatar_url,
     save_npc_avatar_file,
 )
-from app.services.npc_tags import normalize_npc_tags
 
 router = APIRouter(prefix="/admin/npcs", tags=["admin-npcs"])
 
@@ -27,15 +27,7 @@ def _to_summary(row: NpcRow) -> NpcSummary:
     Returns:
         NPC 摘要对象。
     """
-    return NpcSummary(
-        id=row.id,
-        name=row.name,
-        persona_description=row.persona_description,
-        tags=normalize_npc_tags(row.tags or []),
-        avatar_url=row.avatar_url,
-        created_at=row.created_at,
-        updated_at=row.updated_at,
-    )
+    return npc_row_to_summary(row)
 
 
 async def _get_npc_row(npc_id: int, db: AsyncSession) -> NpcRow:
@@ -114,6 +106,7 @@ async def create_npc(
         persona_description=payload.persona_description.strip(),
         tags=payload.tags,
         avatar_url=avatar_url,
+        chat_items=[item.model_dump() for item in payload.chat_items],
     )
     db.add(row)
     await db.commit()
@@ -154,6 +147,8 @@ async def update_npc(
         if next_avatar_url != previous_avatar_url and is_local_npc_avatar_url(previous_avatar_url):
             delete_local_avatar_file(previous_avatar_url)
         row.avatar_url = next_avatar_url
+    if payload.chat_items is not None:
+        row.chat_items = [item.model_dump() for item in payload.chat_items]
 
     await db.commit()
     await db.refresh(row)

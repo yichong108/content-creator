@@ -15,6 +15,7 @@ class LiveSessionRow(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     chat_items: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
+    npc_ids: Mapped[list[int]] = mapped_column(JSON, nullable=False, default=list)
     enabled: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,

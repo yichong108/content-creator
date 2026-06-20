@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { formatDateTime } from "@/lib/format";
+import { NpcAvatar } from "@/components/NpcAvatar";
 import { useLiveSessionStore } from "@/stores/live-session-store";
 
 const kindLabel: Record<string, string> = {
@@ -126,6 +127,14 @@ export function LiveSessionDetailPage() {
               <span>{currentLiveSession.chat_item_count}</span>
             </div>
             <div>
+              <span className="meta-label">关联 NPC</span>
+              <span>
+                {currentLiveSession.npcs.length > 0
+                  ? currentLiveSession.npcs.map((npc) => npc.name).join("、")
+                  : "—"}
+              </span>
+            </div>
+            <div>
               <span className="meta-label">直播展示</span>
               <span>{currentLiveSession.enabled ? "已开启" : "未开启"}</span>
             </div>
@@ -138,6 +147,21 @@ export function LiveSessionDetailPage() {
               <span>{formatDateTime(currentLiveSession.updated_at)}</span>
             </div>
           </div>
+
+          {currentLiveSession.npcs.length > 0 ? (
+            <div className="card">
+              <h2 className="section-title">关联 NPC</h2>
+              <div className="npc-picker npc-picker--readonly">
+                {currentLiveSession.npcs.map((npc) => (
+                  <div key={npc.id} className="npc-picker-item npc-picker-item--locked">
+                    <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={32} />
+                    <span className="npc-picker-name">{npc.name}</span>
+                    <span className="npc-picker-meta">{npc.chat_item_count} 条对话</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="card">
             <h2 className="section-title">聊天记录预览</h2>

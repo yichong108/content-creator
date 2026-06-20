@@ -1,4 +1,5 @@
 import type { ChatItem } from "@/types/chat-item";
+import type { NpcSummary } from "@/types/npc";
 
 export type { ChatItem } from "@/types/chat-item";
 
@@ -10,6 +11,7 @@ export interface LiveSessionSummary {
   title: string;
   description: string | null;
   chat_item_count: number;
+  npc_ids: number[];
   enabled: boolean;
   running: boolean;
   created_at: string;
@@ -21,6 +23,7 @@ export interface LiveSessionSummary {
  */
 export interface LiveSessionDetail extends LiveSessionSummary {
   chat_items: ChatItem[];
+  npcs: NpcSummary[];
 }
 
 /**
@@ -29,5 +32,7 @@ export interface LiveSessionDetail extends LiveSessionSummary {
 export interface LiveSessionFormPayload {
   title: string;
   description: string | null;
-  chat_items: ChatItem[];
+  chat_items?: ChatItem[];
+  npc_ids?: number[];
+  add_npc_ids?: number[];
 }

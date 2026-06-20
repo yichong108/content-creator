@@ -19,8 +19,9 @@ export function LiveSessionCreatePage() {
         ← 返回列表
       </Link>
       <LiveSessionForm
+        mode="create"
         heading="新建直播会话"
-        description="填写标题、描述与 JSON 格式的聊天记录"
+        description="选择 NPC 并填写标题、描述；聊天记录将合并所选 NPC 的对话"
         submitting={submitting}
         error={error}
         submitLabel="创建"
