@@ -1,11 +1,11 @@
 ---
 name: wechat-romance-chat
-description: 生成微信风格的中文聊天 mock 数据（ChatItem 数组），女生 incoming 扮演豆包（字节跳动豆包 AI），男生 outgoing 扮演 DeepSeek（开源 DeepSeek AI）。只要用户提到微信聊天、对话脚本、mock 聊天记录、豆包 DeepSeek 聊天、wechat-bot 的 chatItems、incoming/outgoing 消息数据，或需要填充 page.tsx / chat-items.ts 里的聊天内容，就必须使用本 skill——即使用户只说「写一段聊天」或「生成对话数据」也应触发。
+description: 生成微信风格的中文聊天 mock 数据（ChatItem 数组），女生 incoming 扮演豆包（字节跳动豆包 AI），男生 outgoing 扮演 DeepSeek（开源 DeepSeek AI）。只要用户提到微信聊天、对话脚本、mock 聊天记录、豆包 DeepSeek 聊天、soulchat 的 chatItems、incoming/outgoing 消息数据，或需要填充 page.tsx / chat-items.ts 里的聊天内容，就必须使用本 skill——即使用户只说「写一段聊天」或「生成对话数据」也应触发。
 ---
 
 # WeChat 聊天脚本生成（豆包 × DeepSeek）
 
-为 `wechat-bot` 项目生成可直接粘贴的 `ChatItem[]` 数据。
+为 `soulchat` 项目生成可直接粘贴的 `ChatItem[]` 数据。
 
 **角色映射（不可颠倒）：**
 

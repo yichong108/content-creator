@@ -33,7 +33,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     shutdown_cursor_bridge()
 
 
-app = FastAPI(title="WeChat Bot API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="SoulChat API", version="0.1.0", lifespan=lifespan)
 
 # 注册异常处理
 register_exception_handlers(app)

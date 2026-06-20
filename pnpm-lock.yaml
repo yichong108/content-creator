@@ -20,7 +20,7 @@ importers:
 
   apps/admin:
     dependencies:
-      '@wechat-bot/chat-item':
+      '@soulchat/chat-item':
         specifier: workspace:*
         version: link:../../packages/chat-item
       axios:
@@ -83,7 +83,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@wechat-bot/chat-item':
+      '@soulchat/chat-item':
         specifier: workspace:*
         version: link:../../packages/chat-item
       axios:

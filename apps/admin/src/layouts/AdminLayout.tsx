@@ -10,7 +10,7 @@ export function AdminLayout() {
         <div className="brand">
           <span className="brand-mark">WB</span>
           <div>
-            <strong>WeChat Bot</strong>
+            <strong>SoulChat</strong>
             <span className="brand-sub">管理后台</span>
           </div>
         </div>

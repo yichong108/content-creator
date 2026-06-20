@@ -15,7 +15,7 @@
     "emoji:split": "node scripts/split-wechat-emoji-sprite.mjs"
   },
   "dependencies": {
-    "@wechat-bot/chat-item": "workspace:*",
+    "@soulchat/chat-item": "workspace:*",
     "axios": "^1.17.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

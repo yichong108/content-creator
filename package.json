@@ -1,5 +1,5 @@
 {
-  "name": "wechat-bot",
+  "name": "soulchat",
   "private": true,
   "scripts": {
     "setup": "pnpm install && pnpm --dir apps/api setup",

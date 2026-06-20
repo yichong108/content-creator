@@ -1,5 +1,5 @@
 {
-  "name": "@wechat-bot/chat-item",
+  "name": "@soulchat/chat-item",
   "version": "0.1.0",
   "private": true,
   "type": "module",

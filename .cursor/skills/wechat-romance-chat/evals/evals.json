@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "给 wechat-bot 生成一段 chatItems，女生是豆包 incoming，男生是 DeepSeek outgoing，大概 50 条，聊他们互相调侃开源闭源，风格真实一点",
+      "prompt": "给 soulchat 生成一段 chatItems，女生是豆包 incoming，男生是 DeepSeek outgoing，大概 50 条，聊他们互相调侃开源闭源，风格真实一点",
       "expected_output": "合法 TypeScript ChatItem[]，角色正确，无固定恋爱分手线，可直接替换 chat-items.ts",
       "files": ["apps/web/src/data/chat-items.ts"]
     },

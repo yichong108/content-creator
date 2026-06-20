@@ -1,4 +1,4 @@
-# WeChat Bot
+# SoulChat
 
 高仿微信聊天页面，对话内容由 AI 生成。
 
@@ -13,7 +13,7 @@
 ## 目录结构
 
 ```
-wechat-bot/
+soulchat/
 ├── apps/
 │   ├── web/          # React + Vite 前端
 │   └── api/          # Python 后端
