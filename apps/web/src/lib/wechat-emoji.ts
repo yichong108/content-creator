@@ -1,26 +1,7 @@
-import type { CSSProperties } from "react";
 import { emojiMap, type WechatEmoji } from "wechat-emoji-renderer";
 
-/** 雪碧图总宽度（px） */
-const SPRITE_WIDTH = 500;
-
-/** 雪碧图总高度（px） */
-const SPRITE_HEIGHT = 720;
-
-/** 雪碧图列数 */
-const SPRITE_COLS = 9;
-
-/** 雪碧图行数 */
-const SPRITE_ROWS = 12;
-
-/** 雪碧图中单格宽度（px） */
-const CELL_WIDTH = SPRITE_WIDTH / SPRITE_COLS;
-
-/** 雪碧图中单格高度（px） */
-const CELL_HEIGHT = SPRITE_HEIGHT / SPRITE_ROWS;
-
-/** 雪碧图在 public 目录下的访问路径 */
-export const WECHAT_EMOJI_SPRITE_URL = "/wechat-emoji-sprite.png";
+/** 独立表情 PNG 在 public 目录下的访问前缀 */
+export const WECHAT_EMOJI_IMAGE_BASE_URL = "/wechat-emoji";
 
 /** 气泡正文字号（px），与 index.css `font-size` 一致 */
 export const WECHAT_CHAT_FONT_SIZE = 17;
@@ -29,61 +10,35 @@ export const WECHAT_CHAT_FONT_SIZE = 17;
 export const WECHAT_CHAT_LINE_HEIGHT_RATIO = 1.4;
 
 /**
- * 表情布局盒边长（px）。
+ * 表情布局盒边长（px，逻辑尺寸）。
  * 与 index.css `--wechat-emoji-size` 保持一致。
  */
-export const WECHAT_EMOJI_DISPLAY_SIZE = 22;
+export const WECHAT_EMOJI_DISPLAY_SIZE = 24;
 
 /**
- * 雪碧图单格内表情主体占格子的较短边比例。
- * 用于裁掉格内留白，让图案贴满 22px 布局盒。
+ * 表情 PNG 相对展示尺寸的像素倍率。
+ * 资源由 `scripts/split-wechat-emoji-sprite.mjs` 按此倍率导出（@2x）。
  */
-const CELL_CONTENT_RATIO = 0.62;
+export const WECHAT_EMOJI_PIXEL_RATIO = 2;
+
+/** 表情 PNG 较长边目标尺寸（px） */
+export const WECHAT_EMOJI_ASSET_SIZE = WECHAT_EMOJI_DISPLAY_SIZE * WECHAT_EMOJI_PIXEL_RATIO;
 
 export type WechatMessageSegment =
   | { type: "text"; value: string }
   | { type: "emoji"; value: string; emoji: WechatEmoji };
 
-export type WechatEmojiRenderStyles = {
-  /** 外层裁切容器，固定为展示尺寸 */
-  wrapper: CSSProperties;
-  /** 内层雪碧图切片，通过 background 定位裁切，避免 transform 亚像素模糊 */
-  inner: CSSProperties;
-};
-
 /**
- * 读取当前设备像素比；SSR 环境返回 1。
- */
-function getDevicePixelRatio(): number {
-  if (typeof window === "undefined") {
-    return 1;
-  }
-
-  return window.devicePixelRatio || 1;
-}
-
-/**
- * 将长度对齐到设备物理像素网格，减轻亚像素渲染模糊。
+ * 根据表情名称生成独立 PNG 的 URL。
  *
- * @param value - 逻辑像素长度
- * @param dpr - 设备像素比，默认取当前窗口值
- */
-function snapToDevicePixel(value: number, dpr = getDevicePixelRatio()): number {
-  return Math.round(value * dpr) / dpr;
-}
-
-/**
- * 将展示尺寸对齐到设备像素比，减轻亚像素缩放导致的模糊。
+ * 图片由 `scripts/split-wechat-emoji-sprite.mjs` 导出：优先 wechat-emojis 高清源，
+ * `scripts/assets/wechat-emoji-overrides/` 可放置缺失表情（如「冷汗」）的补图。
  *
- * @param size - 逻辑像素边长
- * @returns 对齐后的边长；SSR 环境原样返回
+ * @param name - 表情中文名或别名（如 `微笑`、`OK`）
+ * @returns public 目录下的访问路径
  */
-export function snapEmojiSizeToDevicePixel(size: number): number {
-  if (typeof window === "undefined") {
-    return size;
-  }
-
-  return snapToDevicePixel(size);
+export function getWechatEmojiImageUrl(name: string): string {
+  return `${WECHAT_EMOJI_IMAGE_BASE_URL}/${encodeURIComponent(name)}.png`;
 }
 
 /**
@@ -123,51 +78,4 @@ export function parseWechatMessageText(text: string): WechatMessageSegment[] {
   }
 
   return segments;
-}
-
-/**
- * 计算微信表情双层 DOM 结构所需的样式。
- *
- * 通过 background-size / background-position 裁切雪碧图，所有像素值对齐设备网格，
- * 避免 transform: scale 带来的亚像素模糊。
- *
- * @param position - 表情在雪碧图中的 `[行, 列]` 坐标（1 起始）
- * @param displaySize - 行内展示边长（px）
- * @returns 外层裁切容器与内层雪碧图元素的样式
- */
-export function getWechatEmojiRenderStyles(
-  position: [number, number],
-  displaySize = WECHAT_EMOJI_DISPLAY_SIZE,
-): WechatEmojiRenderStyles {
-  const [row, col] = position;
-  const colIndex = col - 1;
-  const rowIndex = row - 1;
-  const size = displaySize;
-  const coverScale = Math.max(
-    size / (CELL_WIDTH * CELL_CONTENT_RATIO),
-    size / (CELL_HEIGHT * CELL_CONTENT_RATIO),
-  );
-  const bgWidth = snapToDevicePixel(SPRITE_WIDTH * coverScale);
-  const bgHeight = snapToDevicePixel(SPRITE_HEIGHT * coverScale);
-  const scaledCellWidth = CELL_WIDTH * coverScale;
-  const scaledCellHeight = CELL_HEIGHT * coverScale;
-  const bgX = snapToDevicePixel(-colIndex * scaledCellWidth + (size - scaledCellWidth) / 2);
-  const bgY = snapToDevicePixel(-rowIndex * scaledCellHeight + (size - scaledCellHeight) / 2);
-
-  return {
-    wrapper: {
-      display: "inline-block",
-      overflow: "hidden",
-      position: "relative",
-      flexShrink: 0,
-    },
-    inner: {
-      position: "absolute",
-      inset: 0,
-      backgroundImage: `url(${WECHAT_EMOJI_SPRITE_URL})`,
-      backgroundRepeat: "no-repeat",
-      backgroundSize: `${bgWidth}px ${bgHeight}px`,
-      backgroundPosition: `${bgX}px ${bgY}px`,
-    },
-  };
 }

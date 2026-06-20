@@ -66,9 +66,9 @@ body {
   color: var(--wechat-text);
   word-break: break-word;
   border-radius: 6px;
-  --wechat-emoji-size: 22px;
+  --wechat-emoji-size: 24px;
   --wechat-emoji-margin-x: -0.04em;
-  --wechat-emoji-top: 0;
+  --wechat-emoji-offset-y: -1px;
 }
 
 .wechat-bubble-in {
@@ -109,17 +109,26 @@ body {
 }
 
 .wechat-emoji {
+  display: inline-block;
+  position: relative;
   flex-shrink: 0;
   width: var(--wechat-emoji-size);
-  height: var(--wechat-emoji-size);
+  /* 仅占 1em 行高，24px 表情通过绝对定位溢出绘制，不撑高气泡 */
+  height: 1em;
   margin-inline: var(--wechat-emoji-margin-x);
-  top: var(--wechat-emoji-top);
-  vertical-align: text-bottom;
+  vertical-align: middle;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.wechat-emoji__inner {
+.wechat-emoji__img {
+  position: absolute;
+  left: 0;
+  top: calc((1em - var(--wechat-emoji-size)) / 2 + var(--wechat-emoji-offset-y));
+  width: var(--wechat-emoji-size);
+  height: var(--wechat-emoji-size);
+  object-fit: contain;
   pointer-events: none;
-  image-rendering: -webkit-optimize-contrast;
 }
 
 .wechat-typing-bubble {

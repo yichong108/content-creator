@@ -1,7 +1,7 @@
 import {
-  getWechatEmojiRenderStyles,
+  getWechatEmojiImageUrl,
   parseWechatMessageText,
-  WECHAT_EMOJI_DISPLAY_SIZE,
+  WECHAT_EMOJI_ASSET_SIZE,
 } from "@/lib/wechat-emoji";
 
 type WechatMessageTextProps = {
@@ -10,13 +10,12 @@ type WechatMessageTextProps = {
 };
 
 /**
- * 渲染微信聊天正文，将 `[表情名]` 转为雪碧图行内图标。
+ * 渲染微信聊天正文，将 `[表情名]` 转为独立 PNG 行内图标。
  *
- * 垂直对齐由 CSS `.wechat-emoji` 控制，与汉字基线协调。
+ * 垂直对齐由 CSS `.wechat-emoji` 占位容器控制；图片绝对定位溢出绘制，不撑高气泡行高。
  */
 export function WechatMessageText({ text }: WechatMessageTextProps) {
   const segments = parseWechatMessageText(text);
-  const emojiSize = WECHAT_EMOJI_DISPLAY_SIZE;
 
   if (segments.length === 0) {
     return null;
@@ -33,8 +32,6 @@ export function WechatMessageText({ text }: WechatMessageTextProps) {
           return <span key={`text-${index}`}>{segment.value}</span>;
         }
 
-        const { wrapper, inner } = getWechatEmojiRenderStyles(segment.emoji.position, emojiSize);
-
         return (
           <span
             key={`emoji-${index}-${segment.value}`}
@@ -42,9 +39,17 @@ export function WechatMessageText({ text }: WechatMessageTextProps) {
             role="img"
             aria-label={segment.emoji.name}
             title={segment.emoji.name}
-            style={wrapper}
           >
-            <span className="wechat-emoji__inner" style={inner} aria-hidden />
+            <img
+              className="wechat-emoji__img"
+              src={getWechatEmojiImageUrl(segment.emoji.name)}
+              alt=""
+              width={WECHAT_EMOJI_ASSET_SIZE}
+              height={WECHAT_EMOJI_ASSET_SIZE}
+              loading="lazy"
+              decoding="async"
+              aria-hidden
+            />
           </span>
         );
       })}
