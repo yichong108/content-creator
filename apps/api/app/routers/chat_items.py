@@ -163,6 +163,7 @@ async def _to_mobile_session_summary(row: LiveSessionRow, db: AsyncSession) -> M
         last_message=_extract_last_message_preview(row.chat_items),
         peer_avatar_url=peer_avatar_url,
         updated_at=row.updated_at,
+        running=row.running,
     )
 
 

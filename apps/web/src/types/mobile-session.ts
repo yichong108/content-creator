@@ -10,4 +10,6 @@ export interface MobileSessionSummary {
   peer_avatar_url: string | null;
   /** 最近更新时间（ISO 8601） */
   updated_at: string;
+  /** 是否正在实时续写聊天记录 */
+  running: boolean;
 }

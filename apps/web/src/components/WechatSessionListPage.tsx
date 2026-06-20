@@ -50,9 +50,10 @@ function SessionRow({ session }: { session: MobileSessionSummary }) {
             {formatWechatSessionTime(session.updated_at)}
           </span>
         </div>
-        <p className="mt-1 truncate text-[14px] leading-[1.3] text-[var(--wechat-text-secondary)]">
-          {preview}
-        </p>
+        <div className="mt-1 flex min-w-0 items-center gap-1 text-[14px] leading-[1.3] text-[var(--wechat-text-secondary)]">
+          {session.running && <span className="shrink-0 text-[#07c160]">[运行中]</span>}
+          <p className="min-w-0 flex-1 truncate">{preview}</p>
+        </div>
       </div>
     </Link>
   );

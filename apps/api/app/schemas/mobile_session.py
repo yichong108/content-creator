@@ -11,3 +11,4 @@ class MobileSessionSummary(BaseModel):
     last_message: str | None = Field(default=None, description="最近一条消息预览")
     peer_avatar_url: str | None = Field(default=None, description="对方头像 URL")
     updated_at: datetime = Field(description="最近更新时间")
+    running: bool = Field(default=False, description="是否正在实时续写聊天记录")
