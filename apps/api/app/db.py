@@ -74,6 +74,37 @@ async def _ensure_default_mobile_session() -> None:
         await session.commit()
 
 
+async def _ensure_live_session_mobile_enabled_column() -> None:
+    """为已有 deployments 补齐 live_sessions.mobile_enabled 列。"""
+    async with engine.begin() as conn:
+        if not await _column_exists(conn, "live_sessions", "mobile_enabled"):
+            await conn.execute(
+                text("ALTER TABLE live_sessions ADD COLUMN mobile_enabled TINYINT(1) NOT NULL DEFAULT 0")
+            )
+
+
+async def _ensure_default_live_mobile_session() -> None:
+    """若库中尚无移动端直播会话，则启用最近更新的直播会话。"""
+    from app.models.live_session import LiveSessionRow
+
+    async with async_session() as session:
+        enabled_result = await session.execute(
+            select(LiveSessionRow).where(LiveSessionRow.mobile_enabled.is_(True)).limit(1)
+        )
+        if enabled_result.scalar_one_or_none() is not None:
+            return
+
+        latest_result = await session.execute(
+            select(LiveSessionRow).order_by(LiveSessionRow.updated_at.desc()).limit(1)
+        )
+        row = latest_result.scalar_one_or_none()
+        if row is None:
+            return
+
+        row.mobile_enabled = True
+        await session.commit()
+
+
 async def _ensure_live_session_running_column() -> None:
     """为已有 deployments 补齐 live_sessions.running 列。"""
     async with engine.begin() as conn:
@@ -292,6 +323,7 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await _ensure_mobile_enabled_column()
+    await _ensure_live_session_mobile_enabled_column()
     await _ensure_live_session_running_column()
     await _ensure_npc_tags_column()
     await _ensure_npc_avatar_url_column()
@@ -301,6 +333,7 @@ async def init_db() -> None:
     await _ensure_live_session_npc_role_columns()
     await _ensure_default_mobile_session()
     await _ensure_default_live_session()
+    await _ensure_default_live_mobile_session()
     await _reset_stale_live_session_running()
     await _seed_default_npcs()
 

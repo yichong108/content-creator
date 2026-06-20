@@ -16,6 +16,7 @@ class LiveSessionSummary(BaseModel):
     peer_npc_ids: list[int] = Field(default_factory=list, description="对方 NPC ID 列表")
     self_npc_id: int | None = Field(default=None, description="己方 NPC ID")
     enabled: bool = Field(description="是否作为当前直播展示会话")
+    mobile_enabled: bool = Field(description="是否作为移动端展示会话")
     running: bool = Field(description="是否正在实时续写聊天记录")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="更新时间")
@@ -53,6 +54,12 @@ class LiveSessionEnabledUpdate(BaseModel):
     """更新直播会话展示开关。"""
 
     enabled: bool = Field(description="是否作为当前直播展示会话")
+
+
+class LiveSessionMobileEnabledUpdate(BaseModel):
+    """更新直播会话移动端展示开关。"""
+
+    mobile_enabled: bool = Field(description="是否作为移动端展示会话")
 
 
 class LiveSessionRunningUpdate(BaseModel):

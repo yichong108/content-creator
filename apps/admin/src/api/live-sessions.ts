@@ -94,6 +94,24 @@ export function updateLiveSessionEnabled(
 }
 
 /**
+ * 更新直播会话移动端展示开关。
+ *
+ * @param liveSessionId - 直播会话 ID
+ * @param mobileEnabled - 是否开启移动端展示
+ * @returns 更新后的直播会话摘要
+ */
+export function updateLiveSessionMobileEnabled(
+  liveSessionId: number,
+  mobileEnabled: boolean,
+): Promise<RequestResult<LiveSessionSummary>> {
+  return request<LiveSessionSummary>({
+    url: `/api/admin/live-sessions/${liveSessionId}/mobile-enabled`,
+    method: "PATCH",
+    data: { mobile_enabled: mobileEnabled },
+  });
+}
+
+/**
  * 更新直播会话运行状态（开始/停止实时续写）。
  *
  * @param liveSessionId - 直播会话 ID

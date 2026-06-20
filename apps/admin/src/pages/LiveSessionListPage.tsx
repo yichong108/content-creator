@@ -17,9 +17,11 @@ export function LiveSessionListPage() {
   const loadLiveSessions = useLiveSessionStore((state) => state.loadLiveSessions);
   const deleteLiveSession = useLiveSessionStore((state) => state.deleteLiveSession);
   const setEnabled = useLiveSessionStore((state) => state.setEnabled);
+  const setMobileEnabled = useLiveSessionStore((state) => state.setMobileEnabled);
   const setRunning = useLiveSessionStore((state) => state.setRunning);
   const [previewSessionId, setPreviewSessionId] = useState<number | null>(null);
   const [togglingSessionId, setTogglingSessionId] = useState<number | null>(null);
+  const [togglingMobileSessionId, setTogglingMobileSessionId] = useState<number | null>(null);
   const [runningSessionId, setRunningSessionId] = useState<number | null>(null);
   const [previewSessionTitle, setPreviewSessionTitle] = useState("");
 
@@ -71,6 +73,12 @@ export function LiveSessionListPage() {
     setTogglingSessionId(null);
   };
 
+  const handleMobileToggle = async (liveSessionId: number, nextEnabled: boolean) => {
+    setTogglingMobileSessionId(liveSessionId);
+    await setMobileEnabled(liveSessionId, nextEnabled);
+    setTogglingMobileSessionId(null);
+  };
+
   const handleRunningToggle = async (liveSessionId: number, nextRunning: boolean) => {
     if (nextRunning) {
       const confirmed = window.confirm(
@@ -105,7 +113,9 @@ export function LiveSessionListPage() {
       <header className="page-header">
         <div>
           <h1>直播会话</h1>
-          <p className="page-desc">管理用于直播演示的会话，Web /live 页面展示已开启的会话</p>
+          <p className="page-desc">
+            管理用于直播演示的会话；Web 首页展示已开启移动端的会话，/live 页面展示已开启直播的会话
+          </p>
         </div>
         <div className="page-actions">
           <button
@@ -139,6 +149,7 @@ export function LiveSessionListPage() {
               <col className="col-num" />
               <col className="col-switch" />
               <col className="col-switch" />
+              <col className="col-switch" />
               <col className="col-date" />
               <col className="col-date" />
               <col className="col-actions" />
@@ -149,6 +160,7 @@ export function LiveSessionListPage() {
                 <th scope="col">标题</th>
                 <th scope="col">描述</th>
                 <th scope="col">消息数</th>
+                <th scope="col">移动端</th>
                 <th scope="col">直播展示</th>
                 <th scope="col">运行</th>
                 <th scope="col">创建时间</th>
@@ -159,13 +171,13 @@ export function LiveSessionListPage() {
             <tbody>
               {listLoading ? (
                 <tr>
-                  <td className="table-state" colSpan={9}>
+                  <td className="table-state" colSpan={10}>
                     正在加载直播会话列表…
                   </td>
                 </tr>
               ) : liveSessions.length === 0 ? (
                 <tr>
-                  <td className="table-state" colSpan={9}>
+                  <td className="table-state" colSpan={10}>
                     <div className="empty-state empty-state--table">
                       <p className="muted">暂无直播会话</p>
                       <Link className="btn btn-primary btn-sm" to="/live-sessions/new">
@@ -185,6 +197,22 @@ export function LiveSessionListPage() {
                     </td>
                     <td className="cell-desc">{liveSession.description ?? "—"}</td>
                     <td className="col-num">{liveSession.chat_item_count}</td>
+                    <td className="col-switch">
+                      <label className="switch" title="开启后 Web 首页将展示此会话">
+                        <input
+                          type="checkbox"
+                          checked={liveSession.mobile_enabled}
+                          disabled={submitting && togglingMobileSessionId === liveSession.id}
+                          onChange={(event) =>
+                            void handleMobileToggle(liveSession.id, event.target.checked)
+                          }
+                        />
+                        <span className="switch-slider" aria-hidden="true" />
+                        <span className="sr-only">
+                          {liveSession.mobile_enabled ? "关闭移动端展示" : "开启移动端展示"}
+                        </span>
+                      </label>
+                    </td>
                     <td className="col-switch">
                       <label className="switch" title="开启后 Web 直播页 /live 将展示此会话">
                         <input

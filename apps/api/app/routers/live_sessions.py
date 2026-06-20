@@ -12,6 +12,7 @@ from app.schemas.live_session import (
     LiveSessionCreate,
     LiveSessionDetail,
     LiveSessionEnabledUpdate,
+    LiveSessionMobileEnabledUpdate,
     LiveSessionRunningUpdate,
     LiveSessionSummary,
     LiveSessionUpdate,
@@ -65,6 +66,7 @@ def _to_summary(row: LiveSessionRow) -> LiveSessionSummary:
         peer_npc_ids=list(row.peer_npc_ids or []),
         self_npc_id=row.self_npc_id,
         enabled=row.enabled,
+        mobile_enabled=row.mobile_enabled,
         running=row.running,
         created_at=row.created_at,
         updated_at=row.updated_at,
@@ -93,6 +95,7 @@ async def _to_detail(row: LiveSessionRow, db: AsyncSession) -> LiveSessionDetail
         peer_npc_ids=peer_npc_ids,
         self_npc_id=row.self_npc_id,
         enabled=row.enabled,
+        mobile_enabled=row.mobile_enabled,
         running=row.running,
         created_at=row.created_at,
         updated_at=row.updated_at,
@@ -373,6 +376,39 @@ async def update_live_session_enabled(
         row.enabled = False
         if row.running:
             row.running = False
+
+    await db.commit()
+    await db.refresh(row)
+    return ok(_to_summary(row))
+
+
+@router.patch("/{live_session_id}/mobile-enabled", response_model=ApiResponse[LiveSessionSummary])
+async def update_live_session_mobile_enabled(
+    live_session_id: int,
+    payload: LiveSessionMobileEnabledUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[LiveSessionSummary]:
+    """更新直播会话移动端展示开关，全局仅允许一个直播会话开启。
+
+    Args:
+        live_session_id: 直播会话 ID。
+        payload: 含 mobile_enabled 的请求体。
+        db: 异步数据库会话。
+
+    Returns:
+        统一 ``ApiResponse`` 包裹的更新后直播会话摘要。
+
+    Raises:
+        HTTPException: 直播会话不存在时返回 404。
+    """
+    row = await _get_live_session_row(live_session_id, db)
+
+    if payload.mobile_enabled:
+        result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.mobile_enabled.is_(True)))
+        for enabled_row in result.scalars().all():
+            enabled_row.mobile_enabled = False
+
+    row.mobile_enabled = payload.mobile_enabled
 
     await db.commit()
     await db.refresh(row)

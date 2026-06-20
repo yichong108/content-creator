@@ -14,6 +14,7 @@ export interface LiveSessionSummary {
   peer_npc_ids: number[];
   self_npc_id: number | null;
   enabled: boolean;
+  mobile_enabled: boolean;
   running: boolean;
   created_at: string;
   updated_at: string;

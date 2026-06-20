@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import async_session, get_db
 from app.models.live_session import LiveSessionRow
-from app.models.session import SessionRow
 from app.schemas.chat_item import ChatItem
 from app.schemas.live_status import LiveChatItemsAppendResponse, LiveStatusResponse
 from app.schemas.response import ApiResponse, ok
@@ -17,33 +16,33 @@ from app.services.live_session_npcs import resolve_session_npc_rows
 router = APIRouter(tags=["chat-items"])
 
 
-async def _resolve_mobile_session_row(
+async def _resolve_mobile_live_session_row(
     db: AsyncSession,
-    session_id: int | None,
-) -> SessionRow:
-    """解析移动端目标会话行，未指定时取 mobile_enabled 已开启的会话。
+    live_session_id: int | None,
+) -> LiveSessionRow:
+    """解析移动端目标直播会话行，未指定时取 mobile_enabled 已开启的直播会话。
 
     Args:
         db: 异步数据库会话。
-        session_id: 可选会话 ID。
+        live_session_id: 可选直播会话 ID。
 
     Returns:
-        目标会话 ORM 行。
+        目标直播会话 ORM 行。
 
     Raises:
-        HTTPException: 指定 ID 不存在或尚无移动端会话时返回 404。
+        HTTPException: 指定 ID 不存在或尚无移动端直播会话时返回 404。
     """
-    if session_id is not None:
-        result = await db.execute(select(SessionRow).where(SessionRow.id == session_id))
+    if live_session_id is not None:
+        result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.id == live_session_id))
         row = result.scalar_one_or_none()
         if row is None:
-            raise HTTPException(status_code=404, detail="会话不存在")
+            raise HTTPException(status_code=404, detail="直播会话不存在")
         return row
 
-    result = await db.execute(select(SessionRow).where(SessionRow.mobile_enabled.is_(True)).limit(1))
+    result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.mobile_enabled.is_(True)).limit(1))
     row = result.scalar_one_or_none()
     if row is None:
-        raise HTTPException(status_code=404, detail="暂无已开启移动端的会话")
+        raise HTTPException(status_code=404, detail="暂无已开启移动端的直播会话")
     return row
 
 
@@ -77,16 +76,6 @@ async def _resolve_live_session_row(
     return row
 
 
-async def _chat_items_from_session_row(row: SessionRow, db: AsyncSession) -> list[ChatItem]:
-    """将会话行中的聊天记录规范化为 ChatItem 列表。"""
-    peer_rows, self_row = await resolve_session_npc_rows(
-        db,
-        list(row.peer_npc_ids or []),
-        row.self_npc_id,
-    )
-    return normalize_session_chat_items(row.chat_items, peer_rows, self_row)
-
-
 async def _chat_items_from_live_session_row(row: LiveSessionRow, db: AsyncSession) -> list[ChatItem]:
     """将直播会话行中的聊天记录规范化为 ChatItem 列表。"""
     peer_rows, self_row = await resolve_session_npc_rows(
@@ -99,23 +88,26 @@ async def _chat_items_from_live_session_row(row: LiveSessionRow, db: AsyncSessio
 
 @router.get("/chat-items", response_model=ApiResponse[list[ChatItem]])
 async def list_chat_items(
-    session_id: int | None = Query(default=None, description="会话 ID，缺省时取移动端已开启的会话"),
+    live_session_id: int | None = Query(
+        default=None,
+        description="直播会话 ID，缺省时取移动端已开启的直播会话",
+    ),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[list[ChatItem]]:
-    """返回指定会话的聊天记录，供前端渲染微信对话列表。
+    """返回指定直播会话的聊天记录，供 Web 移动端首页渲染微信对话列表。
 
     Args:
-        session_id: 可选会话 ID。
+        live_session_id: 可选直播会话 ID。
         db: 异步数据库会话。
 
     Returns:
         统一 ``ApiResponse`` 包裹的 ChatItem 列表。
 
     Raises:
-        HTTPException: 会话不存在时返回 404。
+        HTTPException: 直播会话不存在时返回 404。
     """
-    row = await _resolve_mobile_session_row(db, session_id)
-    return ok(await _chat_items_from_session_row(row, db))
+    row = await _resolve_mobile_live_session_row(db, live_session_id)
+    return ok(await _chat_items_from_live_session_row(row, db))
 
 
 @router.get("/live/status", response_model=ApiResponse[LiveStatusResponse])
