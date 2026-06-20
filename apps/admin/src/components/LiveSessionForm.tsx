@@ -108,7 +108,7 @@ export function LiveSessionForm({
     }
 
     if (peerNpcIds.length === 0 && selfNpcId === null) {
-      setFieldError("请先选择对方或己方 NPC，以便按人设生成聊天记录");
+      setFieldError("请先选择对方或己方，以便按人设生成聊天记录");
       return;
     }
 

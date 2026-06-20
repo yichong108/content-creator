@@ -127,7 +127,7 @@ export function LiveSessionDetailPage() {
               <span>{currentLiveSession.chat_item_count}</span>
             </div>
             <div>
-              <span className="meta-label">对方 NPC</span>
+              <span className="meta-label">对方</span>
               <span>
                 {currentLiveSession.peer_npcs.length > 0
                   ? currentLiveSession.peer_npcs.map((npc) => npc.name).join("、")
@@ -135,7 +135,7 @@ export function LiveSessionDetailPage() {
               </span>
             </div>
             <div>
-              <span className="meta-label">己方 NPC</span>
+              <span className="meta-label">己方</span>
               <span>{currentLiveSession.self_npc?.name ?? "—"}</span>
             </div>
             <div>

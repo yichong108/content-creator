@@ -200,7 +200,7 @@ async def generate_live_session_chat_items(
 
     peer_npc_ids = dedupe_npc_ids(payload.peer_npc_ids)
     if not peer_npc_ids and payload.self_npc_id is None:
-        return fail(ERR_BAD_REQUEST, "请先选择对方或己方 NPC，以便按人设生成聊天记录")
+        return fail(ERR_BAD_REQUEST, "请先选择对方或己方，以便按人设生成聊天记录")
 
     try:
         peer_rows, self_row = await resolve_session_npc_rows(db, peer_npc_ids, payload.self_npc_id)
