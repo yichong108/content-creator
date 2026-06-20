@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+import { WechatHeaderMoreMenu } from "@/components/WechatHeaderMoreMenu";
 import { resolveChatItemAvatarUrl } from "@/lib/chat-item-avatar";
 import { formatWechatSessionTime, truncateSessionPreview } from "@/lib/format-wechat-time";
 import type { MobileSessionSummary } from "@/types/mobile-session";
@@ -11,6 +12,8 @@ export type WechatSessionListPageProps = {
   loading?: boolean;
   /** 加载失败时的错误文案，为 null 表示无错误 */
   error?: string | null;
+  /** 点击「发起会话」菜单项时的回调 */
+  onStartSession?: () => void;
 };
 
 function SessionAvatar({ session }: { session: MobileSessionSummary }) {
@@ -64,6 +67,7 @@ export function WechatSessionListPage({
   sessions,
   loading = false,
   error = null,
+  onStartSession,
 }: WechatSessionListPageProps) {
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
@@ -73,20 +77,15 @@ export function WechatSessionListPage({
           <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">
             聊天会话
           </h1>
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center"
-            aria-label="更多"
-          >
-            <img
-              src="/more-icon.png"
-              alt=""
-              width={16}
-              height={3}
-              className="block h-1 w-auto"
-              aria-hidden
-            />
-          </button>
+          <WechatHeaderMoreMenu
+            items={[
+              {
+                key: "start-session",
+                label: "发起会话",
+                onClick: () => onStartSession?.(),
+              },
+            ]}
+          />
         </div>
       </header>
 
