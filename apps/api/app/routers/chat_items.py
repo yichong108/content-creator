@@ -8,10 +8,11 @@ from app.db import async_session, get_db
 from app.models.live_session import LiveSessionRow
 from app.schemas.chat_item import ChatItem
 from app.schemas.live_status import LiveChatItemsAppendResponse, LiveStatusResponse
+from app.schemas.mobile_session import MobileSessionSummary
 from app.schemas.response import ApiResponse, ok
 from app.services.chat_item_npc import normalize_session_chat_items
 from app.services.live_session_events import LIVE_WS_HEARTBEAT_SEC, live_session_event_hub
-from app.services.live_session_npcs import resolve_session_npc_rows
+from app.services.live_session_npcs import load_npc_summaries, resolve_session_npc_rows
 
 router = APIRouter(tags=["chat-items"])
 
@@ -84,6 +85,75 @@ async def _chat_items_from_live_session_row(row: LiveSessionRow, db: AsyncSessio
         row.self_npc_id,
     )
     return normalize_session_chat_items(row.chat_items, peer_rows, self_row)
+
+
+def _extract_last_message_preview(chat_items: list[dict[str, object]]) -> str | None:
+    """从原始聊天记录中提取最近一条可展示的消息文本。
+
+    Args:
+        chat_items: 会话内原始 chat_items JSON 数组。
+
+    Returns:
+        最近一条 incoming/outgoing 消息文本；无有效消息时返回 ``None``。
+    """
+    for item in reversed(chat_items):
+        kind = item.get("kind")
+        text = item.get("text")
+        if kind in ("incoming", "outgoing") and isinstance(text, str):
+            stripped = text.strip()
+            if stripped:
+                return stripped
+    return None
+
+
+async def _to_mobile_session_summary(row: LiveSessionRow, db: AsyncSession) -> MobileSessionSummary:
+    """将直播会话行转换为移动端列表项。
+
+    Args:
+        row: 直播会话 ORM 行。
+        db: 异步数据库会话。
+
+    Returns:
+        供 Web 会话列表页使用的摘要。
+    """
+    peer_avatar_url: str | None = None
+    peer_npc_ids = list(row.peer_npc_ids or [])
+    if peer_npc_ids:
+        peer_npcs = await load_npc_summaries(db, peer_npc_ids[:1])
+        if peer_npcs:
+            peer_avatar_url = peer_npcs[0].avatar_url
+
+    return MobileSessionSummary(
+        id=row.id,
+        title=row.title,
+        last_message=_extract_last_message_preview(row.chat_items),
+        peer_avatar_url=peer_avatar_url,
+        updated_at=row.updated_at,
+    )
+
+
+@router.get("/mobile-sessions", response_model=ApiResponse[list[MobileSessionSummary]])
+async def list_mobile_sessions(
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[list[MobileSessionSummary]]:
+    """返回移动端会话列表，按更新时间降序排列。
+
+    仅包含至少有一条聊天记录的会话，供 Web 根路径会话列表页渲染。
+
+    Args:
+        db: 异步数据库会话。
+
+    Returns:
+        统一 ``ApiResponse`` 包裹的移动端会话摘要列表。
+    """
+    result = await db.execute(select(LiveSessionRow).order_by(LiveSessionRow.updated_at.desc()))
+    rows = result.scalars().all()
+    summaries: list[MobileSessionSummary] = []
+    for row in rows:
+        if not row.chat_items:
+            continue
+        summaries.append(await _to_mobile_session_summary(row, db))
+    return ok(summaries)
 
 
 @router.get("/chat-items", response_model=ApiResponse[list[ChatItem]])

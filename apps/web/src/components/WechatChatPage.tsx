@@ -15,6 +15,8 @@ export type WechatChatPageProps = {
   error?: string | null;
   /** 对方是否正在输入（仅展示 incoming 侧） */
   peerTyping?: boolean;
+  /** 点击返回按钮时的回调；未提供时不绑定点击事件 */
+  onBack?: () => void;
 };
 
 function MessageAvatar({ src, alt }: { src: string; alt: string }) {
@@ -108,6 +110,7 @@ export function WechatChatPage({
   loading = false,
   error = null,
   peerTyping = false,
+  onBack,
 }: WechatChatPageProps) {
   const scrollRef = useRef<HTMLElement>(null);
 
@@ -126,6 +129,7 @@ export function WechatChatPage({
           type="button"
           className="-ml-1 flex h-8 w-8 items-center justify-center"
           aria-label="返回"
+          onClick={onBack}
         >
           <img
             src="/back-arrow.png"

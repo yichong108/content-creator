@@ -1,5 +1,6 @@
 import type { ChatItem } from "@/data/chat-items";
 import { request, type RequestResult } from "@/lib/request";
+import type { MobileSessionSummary } from "@/types/mobile-session";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -44,12 +45,23 @@ export function getLiveWebSocketUrl(): string {
 }
 
 /**
+ * 从后端 API 获取移动端会话列表。
+ *
+ * @returns 业务 data 为 MobileSessionSummary 数组
+ */
+export function fetchMobileSessions(): Promise<RequestResult<MobileSessionSummary[]>> {
+  return request<MobileSessionSummary[]>({ url: "/api/mobile-sessions" });
+}
+
+/**
  * 从后端 API 获取聊天列表数据（默认返回移动端已开启的直播会话）。
  *
+ * @param liveSessionId - 可选直播会话 ID
  * @returns 业务 data 为 ChatItem 数组
  */
-export function fetchChatItems(): Promise<RequestResult<ChatItem[]>> {
-  return request<ChatItem[]>({ url: "/api/chat-items" });
+export function fetchChatItems(liveSessionId?: number): Promise<RequestResult<ChatItem[]>> {
+  const params = liveSessionId != null ? { live_session_id: liveSessionId } : undefined;
+  return request<ChatItem[]>({ url: "/api/chat-items", params });
 }
 
 /**
