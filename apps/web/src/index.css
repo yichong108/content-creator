@@ -68,7 +68,7 @@ body {
   border-radius: 6px;
   --wechat-emoji-size: 24px;
   --wechat-emoji-margin-x: 0.06em;
-  --wechat-emoji-offset-y: -1px;
+  --wechat-emoji-offset-y: -2px;
 }
 
 .wechat-bubble-in {
