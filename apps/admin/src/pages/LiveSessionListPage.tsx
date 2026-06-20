@@ -114,7 +114,8 @@ export function LiveSessionListPage() {
         <div>
           <h1>直播会话</h1>
           <p className="page-desc">
-            管理用于直播演示的会话；Web 首页展示已开启移动端的会话，/live 页面展示已开启直播的会话
+            管理用于直播演示的会话；Web /chatPage 页面展示已开启移动端的会话，/live
+            页面展示已开启直播的会话
           </p>
         </div>
         <div className="page-actions">
@@ -198,7 +199,7 @@ export function LiveSessionListPage() {
                     <td className="cell-desc">{liveSession.description ?? "—"}</td>
                     <td className="col-num">{liveSession.chat_item_count}</td>
                     <td className="col-switch">
-                      <label className="switch" title="开启后 Web 首页将展示此会话">
+                      <label className="switch" title="开启后 Web /chatPage 页面将展示此会话">
                         <input
                           type="checkbox"
                           checked={liveSession.mobile_enabled}
