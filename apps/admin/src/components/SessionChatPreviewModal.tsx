@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { fetchSession } from "@/api/sessions";
+import { fetchLiveSession } from "@/api/live-sessions";
 import {
   ChatPreviewMessageType,
   createChatPreviewDataMessage,
@@ -83,7 +83,7 @@ export function SessionChatPreviewModal({
     const loadDetail =
       fetchSessionDetail ??
       (async (id: number) => {
-        const result = await fetchSession(id);
+        const result = await fetchLiveSession(id);
         if (!result.ok) {
           return result;
         }

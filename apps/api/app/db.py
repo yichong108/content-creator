@@ -31,47 +31,51 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-async def _ensure_mobile_enabled_column() -> None:
-    """为已有 deployments 补齐 mobile_enabled 列。"""
+async def _ensure_live_session_source_session_id_column() -> None:
+    """为已有 deployments 补齐 live_sessions.source_session_id 列。"""
     async with engine.begin() as conn:
-        result = await conn.execute(
-            text(
-                """
-                SELECT COUNT(*)
-                FROM information_schema.COLUMNS
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME = 'sessions'
-                  AND COLUMN_NAME = 'mobile_enabled'
-                """
-            )
-        )
-        if result.scalar_one() == 0:
-            await conn.execute(text("ALTER TABLE sessions ADD COLUMN mobile_enabled TINYINT(1) NOT NULL DEFAULT 0"))
+        if not await _column_exists(conn, "live_sessions", "source_session_id"):
+            await conn.execute(text("ALTER TABLE live_sessions ADD COLUMN source_session_id BIGINT NULL"))
 
 
-async def _ensure_default_mobile_session() -> None:
-    """
-    处理关于移动端获取一条会话记录的逻辑：
-    若库中尚无移动端会话，则启用最近更新的会话。
-    """
-    # 导入 SessionRow 模型
+async def _migrate_sessions_to_live_sessions() -> None:
+    """将旧 sessions 表数据一次性迁移到 live_sessions，并清空 sessions 表。"""
+    from app.models.live_session import LiveSessionRow
     from app.models.session import SessionRow
 
-    async with async_session() as session:
-        enabled_result = await session.execute(select(SessionRow).where(SessionRow.mobile_enabled.is_(True)).limit(1))
-        # 如果存在移动端会话，则直接返回
-        if enabled_result.scalar_one_or_none() is not None:
+    async with async_session() as db:
+        session_rows = list((await db.execute(select(SessionRow))).scalars().all())
+        if not session_rows:
             return
 
-        # 查询最近更新的会话
-        latest_result = await session.execute(select(SessionRow).order_by(SessionRow.updated_at.desc()).limit(1))
-        row = latest_result.scalar_one_or_none()
-        if row is None:
-            return
+        migrated_result = await db.execute(
+            select(LiveSessionRow.source_session_id).where(LiveSessionRow.source_session_id.isnot(None))
+        )
+        migrated_ids = set(migrated_result.scalars().all())
+        existing_live_ids = set((await db.execute(select(LiveSessionRow.id))).scalars().all())
 
-        row.mobile_enabled = True
-        # 提交事务
-        await session.commit()
+        for row in session_rows:
+            if row.id not in migrated_ids:
+                live_kwargs: dict[str, object] = {
+                    "title": row.title,
+                    "description": row.description,
+                    "chat_items": row.chat_items,
+                    "peer_npc_ids": list(row.peer_npc_ids or []),
+                    "self_npc_id": row.self_npc_id,
+                    "mobile_enabled": row.mobile_enabled,
+                    "enabled": False,
+                    "running": False,
+                    "source_session_id": row.id,
+                    "created_at": row.created_at,
+                    "updated_at": row.updated_at,
+                }
+                if row.id not in existing_live_ids:
+                    live_kwargs["id"] = row.id
+                db.add(LiveSessionRow(**live_kwargs))
+
+            await db.delete(row)
+
+        await db.commit()
 
 
 async def _ensure_live_session_mobile_enabled_column() -> None:
@@ -322,16 +326,16 @@ async def init_db() -> None:
     """创建尚未存在的数据库表，并应用增量 schema 变更。"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    await _ensure_mobile_enabled_column()
     await _ensure_live_session_mobile_enabled_column()
     await _ensure_live_session_running_column()
+    await _ensure_live_session_source_session_id_column()
     await _ensure_npc_tags_column()
     await _ensure_npc_avatar_url_column()
     await _ensure_npc_chat_items_column()
     await _ensure_live_session_npc_ids_column()
     await _ensure_session_npc_role_columns()
     await _ensure_live_session_npc_role_columns()
-    await _ensure_default_mobile_session()
+    await _migrate_sessions_to_live_sessions()
     await _ensure_default_live_session()
     await _ensure_default_live_mobile_session()
     await _reset_stale_live_session_running()

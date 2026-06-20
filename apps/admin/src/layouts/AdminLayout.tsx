@@ -16,9 +16,6 @@ export function AdminLayout() {
         </div>
         <nav className="nav">
           <NavLink end className="nav-link" to="/">
-            会话列表
-          </NavLink>
-          <NavLink className="nav-link" to="/live-sessions">
             直播会话
           </NavLink>
           <NavLink className="nav-link" to="/npcs">

@@ -35,6 +35,7 @@ class LiveSessionRow(Base):
         default=False,
         server_default="0",
     )
+    source_session_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
