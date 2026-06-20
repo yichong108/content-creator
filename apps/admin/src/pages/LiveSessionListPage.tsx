@@ -205,20 +205,42 @@ export function LiveSessionListPage() {
                       {liveSession.running ? (
                         <button
                           type="button"
-                          className="btn btn-danger btn-sm"
+                          className="btn btn-danger btn-sm btn-icon"
+                          title="停止运行"
+                          aria-label="停止运行"
                           disabled={submitting && runningSessionId === liveSession.id}
                           onClick={() => void handleRunningToggle(liveSession.id, false)}
                         >
-                          停止运行
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path d="M6 6h12v12H6z" />
+                          </svg>
                         </button>
                       ) : (
                         <button
                           type="button"
-                          className="btn btn-primary btn-sm"
+                          className="btn btn-primary btn-sm btn-icon"
+                          title="开始运行"
+                          aria-label="开始运行"
                           disabled={submitting && runningSessionId === liveSession.id}
                           onClick={() => void handleRunningToggle(liveSession.id, true)}
                         >
-                          开始运行
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
                         </button>
                       )}
                     </td>
