@@ -67,7 +67,7 @@ body {
   word-break: break-word;
   border-radius: 6px;
   --wechat-emoji-size: 24px;
-  --wechat-emoji-margin-x: -0.04em;
+  --wechat-emoji-margin-x: 0.06em;
   --wechat-emoji-offset-y: -1px;
 }
 

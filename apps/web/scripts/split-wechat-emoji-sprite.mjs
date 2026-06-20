@@ -54,30 +54,58 @@ async function getEmojiOverridePath(name) {
 }
 
 /**
- * 将高清图源缩放至 @2x 导出尺寸（仅缩小，避免放大导致模糊）。
+ * 裁切透明边距后缩放至 @2x 画布内，并在正方形画布上居中对齐。
  *
- * @param sourcePath - 源 PNG 路径
- * @returns @2x PNG Buffer
+ * 部分高清源（如「旺柴」）内容在 PNG 内偏上，直接缩放会保留偏移；
+ * trim 后居中可保证气泡内与文字垂直对齐一致。
+ *
+ * @param source - sharp 实例或源 PNG 路径
+ * @returns 边长为 EMOJI_ASSET_SIZE 的 PNG Buffer
  */
-async function exportHdEmoji(sourcePath) {
-  const source = sharp(sourcePath);
-  const { width, height } = await source.metadata();
+async function exportCenteredEmoji(source) {
+  const input = typeof source === "string" ? sharp(source) : source;
+  const trimmedBuffer = await input.clone().trim({ threshold: 12 }).png().toBuffer();
+  const trimmed = sharp(trimmedBuffer);
+  const { width, height } = await trimmed.metadata();
 
   if (!width || !height) {
-    throw new Error(`无法读取表情图片: ${sourcePath}`);
+    throw new Error("无法裁切表情图片");
   }
 
-  if (width <= EMOJI_ASSET_SIZE && height <= EMOJI_ASSET_SIZE) {
-    return source.png().toBuffer();
-  }
-
-  return source
+  const scaledBuffer = await trimmed
     .resize(EMOJI_ASSET_SIZE, EMOJI_ASSET_SIZE, {
       fit: "inside",
       kernel: sharp.kernel.lanczos3,
     })
     .png()
     .toBuffer();
+
+  const { width: scaledWidth = 0, height: scaledHeight = 0 } =
+    await sharp(scaledBuffer).metadata();
+  const left = Math.round((EMOJI_ASSET_SIZE - scaledWidth) / 2);
+  const top = Math.round((EMOJI_ASSET_SIZE - scaledHeight) / 2);
+
+  return sharp({
+    create: {
+      width: EMOJI_ASSET_SIZE,
+      height: EMOJI_ASSET_SIZE,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: scaledBuffer, left, top }])
+    .png()
+    .toBuffer();
+}
+
+/**
+ * 将高清图源缩放至 @2x 导出尺寸（仅缩小，避免放大导致模糊）。
+ *
+ * @param sourcePath - 源 PNG 路径
+ * @returns @2x PNG Buffer
+ */
+async function exportHdEmoji(sourcePath) {
+  return exportCenteredEmoji(sourcePath);
 }
 
 /**
@@ -104,24 +132,7 @@ async function exportSpriteEmoji(sprite, spriteWidth, spriteHeight, position) {
     .png()
     .toBuffer();
 
-  const trimmed = sharp(await sharp(cellBuffer).trim({ threshold: 12 }).png().toBuffer());
-  const { width: trimmedWidth, height: trimmedHeight } = await trimmed.metadata();
-
-  if (!trimmedWidth || !trimmedHeight) {
-    throw new Error(`雪碧图裁切失败: position=${position}`);
-  }
-
-  if (trimmedWidth <= EMOJI_ASSET_SIZE && trimmedHeight <= EMOJI_ASSET_SIZE) {
-    return trimmed.png().toBuffer();
-  }
-
-  return trimmed
-    .resize(EMOJI_ASSET_SIZE, EMOJI_ASSET_SIZE, {
-      fit: "inside",
-      kernel: sharp.kernel.lanczos3,
-    })
-    .png()
-    .toBuffer();
+  return exportCenteredEmoji(sharp(cellBuffer));
 }
 
 async function main() {
