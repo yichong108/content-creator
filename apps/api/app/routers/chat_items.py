@@ -117,6 +117,7 @@ def _live_chat_items_response(row: LiveSessionRow, items: list[ChatItem]) -> Liv
         total=len(row.chat_items),
         title=row.title,
         npc_count=_session_npc_count(row),
+        running=row.running,
     )
 
 

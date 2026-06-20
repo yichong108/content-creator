@@ -23,6 +23,7 @@ class LiveChatItemsAppendResponse(BaseModel):
     total: int = Field(description="当前会话聊天记录总条数")
     title: str = Field(description="会话标题")
     npc_count: int = Field(description="会话参与 NPC 数量（对方 + 己方）")
+    running: bool = Field(description="是否正在实时续写")
 
 
 class LiveWsConnectedPayload(BaseModel):

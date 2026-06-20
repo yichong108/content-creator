@@ -13,6 +13,14 @@ export interface LiveChatItemsResponse {
   title: string;
   /** 参与会话的 NPC 数量（对方 + 己方） */
   npc_count: number;
+  /** 是否正在实时续写 */
+  running: boolean;
+}
+
+/** 更新直播会话运行状态后的摘要 */
+export interface LiveSessionRunningSummary {
+  id: number;
+  running: boolean;
 }
 
 /** WebSocket message 事件载荷 */
@@ -130,5 +138,23 @@ export function createLiveSession(
     url: "/api/admin/live-sessions",
     method: "POST",
     data: payload,
+  });
+}
+
+/**
+ * 更新直播会话运行状态（开始/停止实时续写）。
+ *
+ * @param liveSessionId - 直播会话 ID
+ * @param running - 是否开始运行
+ * @returns 业务 data 为更新后的会话摘要（含 running）
+ */
+export function updateLiveSessionRunning(
+  liveSessionId: number,
+  running: boolean,
+): Promise<RequestResult<LiveSessionRunningSummary>> {
+  return request<LiveSessionRunningSummary>({
+    url: `/api/admin/live-sessions/${liveSessionId}/running`,
+    method: "PATCH",
+    data: { running },
   });
 }

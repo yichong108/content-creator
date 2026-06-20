@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { WechatChatMessageList } from "@/components/WechatChatMessageList";
+import { WechatHeaderMoreMenu } from "@/components/WechatHeaderMoreMenu";
 import { formatChatPageTitle, useLiveChatStream } from "@/hooks/useLiveChatStream";
 
 /**
@@ -34,6 +35,7 @@ export function ChatPage() {
   const sessionId = parseSessionId(sessionIdParam);
   const live = useLiveChatStream(sessionId);
   const [draft, setDraft] = useState("");
+  const { running, setSessionRunning } = live;
 
   const handleSend = () => {
     const text = draft.trim();
@@ -48,6 +50,34 @@ export function ChatPage() {
     event.preventDefault();
     handleSend();
   };
+
+  const moreMenuItems = useMemo(() => {
+    if (sessionId == null) {
+      return [];
+    }
+
+    if (running) {
+      return [
+        {
+          key: "stop",
+          label: "停止",
+          onClick: () => {
+            void setSessionRunning(false);
+          },
+        },
+      ];
+    }
+
+    return [
+      {
+        key: "run",
+        label: "运行",
+        onClick: () => {
+          void setSessionRunning(true);
+        },
+      },
+    ];
+  }, [running, sessionId, setSessionRunning]);
 
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
@@ -70,20 +100,7 @@ export function ChatPage() {
         <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">
           {formatChatPageTitle(live.title, live.npcCount)}
         </h1>
-        <button
-          type="button"
-          className="flex h-8 w-8 items-center justify-center"
-          aria-label="更多"
-        >
-          <img
-            src="/more-icon.png"
-            alt=""
-            width={16}
-            height={3}
-            className="block h-1 w-auto"
-            aria-hidden
-          />
-        </button>
+        <WechatHeaderMoreMenu items={moreMenuItems} />
       </header>
 
       <WechatChatMessageList

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ChatItem } from "@/data/chat-items";
 import {
   fetchLiveChatItems,
   getLiveWebSocketUrl,
+  updateLiveSessionRunning,
   type LiveWsFrame,
   type LiveWsMessagePayload,
   type LiveWsTypingPayload,
@@ -114,15 +115,17 @@ export function formatChatPageTitle(_title: string, npcCount: number): string {
  * 先通过 REST 拉取全量消息，再订阅 WebSocket 接收新消息追加。
  *
  * @param sessionId - 可选会话 ID；缺省时使用后端默认的已开启直播会话
- * @returns 标题、NPC 数量、聊天记录、加载与错误状态，以及对方是否正在输入
+ * @returns 标题、NPC 数量、聊天记录、运行状态、加载与错误状态，以及对方是否正在输入
  */
 export function useLiveChatStream(sessionId?: number) {
   const [title, setTitle] = useState(DEFAULT_TITLE);
   const [npcCount, setNpcCount] = useState(0);
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
+  const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [peerTyping, setPeerTyping] = useState(false);
+  const [runningSubmitting, setRunningSubmitting] = useState(false);
   const sessionIdRef = useRef<number | null>(sessionId ?? null);
 
   useEffect(() => {
@@ -133,9 +136,11 @@ export function useLiveChatStream(sessionId?: number) {
     setTitle(DEFAULT_TITLE);
     setNpcCount(0);
     setChatItems([]);
+    setRunning(false);
     setLoading(true);
     setError(null);
     setPeerTyping(false);
+    setRunningSubmitting(false);
 
     const connectStream = () => {
       socket = new WebSocket(getLiveWebSocketUrl());
@@ -166,6 +171,9 @@ export function useLiveChatStream(sessionId?: number) {
               (sessionId == null || connectedSessionId === sessionId)
             ) {
               setTitle(record.title);
+            }
+            if (typeof record.running === "boolean") {
+              setRunning(record.running);
             }
             return;
           }
@@ -208,6 +216,9 @@ export function useLiveChatStream(sessionId?: number) {
             }
 
             const record = data as Record<string, unknown>;
+            if (typeof record.running === "boolean") {
+              setRunning(record.running);
+            }
             if (record.running === false) {
               setPeerTyping(false);
             }
@@ -233,6 +244,7 @@ export function useLiveChatStream(sessionId?: number) {
       setChatItems(res.data.items);
       setTitle(res.data.title);
       setNpcCount(res.data.npc_count);
+      setRunning(res.data.running);
       setLoading(false);
       setError(null);
       connectStream();
@@ -244,5 +256,45 @@ export function useLiveChatStream(sessionId?: number) {
     };
   }, [sessionId]);
 
-  return { title, npcCount, chatItems, loading, error, peerTyping };
+  /**
+   * 切换当前会话的运行状态（开始/停止实时续写）。
+   *
+   * @param nextRunning - 目标运行状态
+   * @returns 是否更新成功
+   */
+  const setSessionRunning = useCallback(
+    async (nextRunning: boolean): Promise<boolean> => {
+      const targetSessionId = sessionIdRef.current ?? sessionId;
+      if (targetSessionId == null) {
+        setError("无法识别当前会话");
+        return false;
+      }
+
+      setRunningSubmitting(true);
+      const result = await updateLiveSessionRunning(targetSessionId, nextRunning);
+      setRunningSubmitting(false);
+
+      if (!result.ok) {
+        setError(getRequestErrorMessage(result));
+        return false;
+      }
+
+      setRunning(result.data.running);
+      setError(null);
+      return true;
+    },
+    [sessionId],
+  );
+
+  return {
+    title,
+    npcCount,
+    chatItems,
+    running,
+    loading,
+    error,
+    peerTyping,
+    runningSubmitting,
+    setSessionRunning,
+  };
 }
