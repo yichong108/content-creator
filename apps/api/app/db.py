@@ -5,7 +5,7 @@
 from collections.abc import AsyncGenerator
 
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
@@ -184,6 +184,91 @@ async def _ensure_live_session_npc_ids_column() -> None:
             )
 
 
+async def _column_exists(conn: AsyncConnection, table_name: str, column_name: str) -> bool:
+    """检查指定表列是否已存在。"""
+    result = await conn.execute(
+        text(
+            """
+            SELECT COUNT(*)
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = :table_name
+              AND COLUMN_NAME = :column_name
+            """
+        ),
+        {"table_name": table_name, "column_name": column_name},
+    )
+    return bool(result.scalar_one())
+
+
+async def _ensure_session_npc_role_columns() -> None:
+    """为 sessions 表补齐 peer_npc_ids / self_npc_id 列，并从旧 peer_npc_id 迁移。"""
+    async with engine.begin() as conn:
+        if not await _column_exists(conn, "sessions", "peer_npc_ids"):
+            await conn.execute(
+                text("ALTER TABLE sessions ADD COLUMN peer_npc_ids JSON NOT NULL DEFAULT (JSON_ARRAY())")
+            )
+        if not await _column_exists(conn, "sessions", "self_npc_id"):
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN self_npc_id BIGINT NULL"))
+
+        if await _column_exists(conn, "sessions", "peer_npc_id"):
+            await conn.execute(
+                text(
+                    """
+                    UPDATE sessions
+                    SET peer_npc_ids = JSON_ARRAY(peer_npc_id)
+                    WHERE JSON_LENGTH(peer_npc_ids) = 0
+                      AND peer_npc_id IS NOT NULL
+                    """
+                )
+            )
+
+
+async def _ensure_live_session_npc_role_columns() -> None:
+    """为 live_sessions 表补齐 peer_npc_ids / self_npc_id，并从旧字段迁移。"""
+    async with engine.begin() as conn:
+        if not await _column_exists(conn, "live_sessions", "peer_npc_ids"):
+            await conn.execute(
+                text("ALTER TABLE live_sessions ADD COLUMN peer_npc_ids JSON NOT NULL DEFAULT (JSON_ARRAY())")
+            )
+        if not await _column_exists(conn, "live_sessions", "self_npc_id"):
+            await conn.execute(text("ALTER TABLE live_sessions ADD COLUMN self_npc_id BIGINT NULL"))
+
+        if await _column_exists(conn, "live_sessions", "peer_npc_id"):
+            await conn.execute(
+                text(
+                    """
+                    UPDATE live_sessions
+                    SET peer_npc_ids = JSON_ARRAY(peer_npc_id)
+                    WHERE JSON_LENGTH(peer_npc_ids) = 0
+                      AND peer_npc_id IS NOT NULL
+                    """
+                )
+            )
+
+        if await _column_exists(conn, "live_sessions", "npc_ids"):
+            await conn.execute(
+                text(
+                    """
+                    UPDATE live_sessions
+                    SET peer_npc_ids = npc_ids
+                    WHERE JSON_LENGTH(peer_npc_ids) = 0
+                      AND JSON_LENGTH(npc_ids) >= 1
+                    """
+                )
+            )
+            await conn.execute(
+                text(
+                    """
+                    UPDATE live_sessions
+                    SET self_npc_id = CAST(JSON_UNQUOTE(JSON_EXTRACT(npc_ids, '$[1]')) AS UNSIGNED)
+                    WHERE self_npc_id IS NULL
+                      AND JSON_LENGTH(npc_ids) >= 2
+                    """
+                )
+            )
+
+
 async def _ensure_npc_chat_items_column() -> None:
     """为已有 deployments 补齐 npcs.chat_items 列。"""
     async with engine.begin() as conn:
@@ -212,6 +297,8 @@ async def init_db() -> None:
     await _ensure_npc_avatar_url_column()
     await _ensure_npc_chat_items_column()
     await _ensure_live_session_npc_ids_column()
+    await _ensure_session_npc_role_columns()
+    await _ensure_live_session_npc_role_columns()
     await _ensure_default_mobile_session()
     await _ensure_default_live_session()
     await _reset_stale_live_session_running()

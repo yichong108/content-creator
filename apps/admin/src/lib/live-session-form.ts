@@ -12,12 +12,14 @@ export function liveSessionToFormValues(liveSession: {
   title: string;
   description: string | null;
   chat_items: NonNullable<LiveSessionFormPayload["chat_items"]>;
-  npc_ids: number[];
+  peer_npc_ids: number[];
+  self_npc_id: number | null;
 }): ChatSessionFormValues {
   return {
     title: liveSession.title,
     description: liveSession.description ?? "",
     chatItemsJson: stringifyChatItems(liveSession.chat_items),
-    npcIds: liveSession.npc_ids,
+    peerNpcIds: liveSession.peer_npc_ids,
+    selfNpcId: liveSession.self_npc_id,
   };
 }

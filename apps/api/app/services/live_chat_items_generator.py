@@ -13,8 +13,8 @@ LIVE_CHAT_ITEM_CONTINUATION_SYSTEM_PROMPT = """\
 你是微信聊天 mock 数据续写器。根据会话标题与已有聊天记录，继续生成恰好 1 条新消息。
 
 角色映射（不可颠倒）：
-- incoming：豆包（字节跳动豆包 AI，左侧气泡），语气活泼接地气
-- outgoing：DeepSeek（开源 DeepSeek AI，右侧气泡），偏理性
+- incoming：非己方（对方侧）消息，左侧气泡
+- outgoing：己方发送的消息，右侧气泡
 
 输出格式：必须是合法 JSON 对象，顶层字段 item 为 {"kind": "...", "text": "..."}。
 kind 只能是 timestamp、system、incoming、outgoing 之一。

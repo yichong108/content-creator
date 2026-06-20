@@ -15,6 +15,8 @@ class SessionRow(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     chat_items: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
+    peer_npc_ids: Mapped[list[int]] = mapped_column(JSON, nullable=False, default=list)
+    self_npc_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     mobile_enabled: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,

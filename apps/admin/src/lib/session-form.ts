@@ -11,11 +11,15 @@ import type { ChatSessionFormValues } from "@/components/chat-session-form-types
 export function sessionToFormValues(session: {
   title: string;
   description: string | null;
-  chat_items: SessionFormPayload["chat_items"];
+  chat_items: NonNullable<SessionFormPayload["chat_items"]>;
+  peer_npc_ids: number[];
+  self_npc_id: number | null;
 }): ChatSessionFormValues {
   return {
     title: session.title,
     description: session.description ?? "",
     chatItemsJson: stringifyChatItems(session.chat_items),
+    peerNpcIds: session.peer_npc_ids,
+    selfNpcId: session.self_npc_id,
   };
 }

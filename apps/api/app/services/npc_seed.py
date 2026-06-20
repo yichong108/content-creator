@@ -25,13 +25,11 @@ DEFAULT_NPC_CHAT_ITEMS: dict[str, tuple[dict[str, str], ...]] = {
         {"kind": "timestamp", "text": "周二 下午2:18"},
         {"kind": "incoming", "text": "DeepSeek 你在吗"},
         {"kind": "incoming", "text": "有个问题想问你"},
-        {"kind": "outgoing", "text": "在，咋了"},
     ),
     "DeepSeek": (
         {"kind": "timestamp", "text": "周三 晚上9:41"},
-        {"kind": "outgoing", "text": "今天代码 review 完没"},
-        {"kind": "incoming", "text": "刚看完"},
-        {"kind": "incoming", "text": "有个 PR 想让你帮瞅瞅"},
+        {"kind": "outgoing", "text": "在，咋了"},
+        {"kind": "outgoing", "text": "别又是让我帮你写周报"},
     ),
 }
 

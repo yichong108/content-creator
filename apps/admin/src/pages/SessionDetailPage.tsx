@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { formatDateTime } from "@/lib/format";
+import { NpcAvatar } from "@/components/NpcAvatar";
 import { useSessionStore } from "@/stores/session-store";
 
 const kindLabel: Record<string, string> = {
@@ -124,6 +125,18 @@ export function SessionDetailPage() {
               <span>{currentSession.chat_item_count}</span>
             </div>
             <div>
+              <span className="meta-label">对方 NPC</span>
+              <span>
+                {currentSession.peer_npcs.length > 0
+                  ? currentSession.peer_npcs.map((npc) => npc.name).join("、")
+                  : "—"}
+              </span>
+            </div>
+            <div>
+              <span className="meta-label">己方 NPC</span>
+              <span>{currentSession.self_npc?.name ?? "—"}</span>
+            </div>
+            <div>
               <span className="meta-label">创建时间</span>
               <span>{formatDateTime(currentSession.created_at)}</span>
             </div>
@@ -132,6 +145,34 @@ export function SessionDetailPage() {
               <span>{formatDateTime(currentSession.updated_at)}</span>
             </div>
           </div>
+
+          {currentSession.peer_npcs.length > 0 || currentSession.self_npc ? (
+            <div className="card">
+              <h2 className="section-title">关联 NPC</h2>
+              <div className="npc-picker npc-picker--readonly">
+                {currentSession.peer_npcs.map((npc) => (
+                  <div key={npc.id} className="npc-picker-item npc-picker-item--locked">
+                    <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={32} />
+                    <span className="npc-picker-name">对方：{npc.name}</span>
+                    <span className="npc-picker-meta">{npc.chat_item_count} 条对话</span>
+                  </div>
+                ))}
+                {currentSession.self_npc ? (
+                  <div className="npc-picker-item npc-picker-item--locked">
+                    <NpcAvatar
+                      name={currentSession.self_npc.name}
+                      avatarUrl={currentSession.self_npc.avatar_url}
+                      size={32}
+                    />
+                    <span className="npc-picker-name">己方：{currentSession.self_npc.name}</span>
+                    <span className="npc-picker-meta">
+                      {currentSession.self_npc.chat_item_count} 条对话
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           <div className="card">
             <h2 className="section-title">聊天记录预览</h2>

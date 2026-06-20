@@ -20,7 +20,7 @@ export function SessionCreatePage() {
       </Link>
       <SessionForm
         heading="新建会话"
-        description="填写标题、描述与 JSON 格式的聊天记录"
+        description="填写标题、描述与 JSON 格式的聊天记录；可选设置对方/己方 NPC"
         submitting={submitting}
         error={error}
         submitLabel="创建"

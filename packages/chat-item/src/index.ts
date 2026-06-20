@@ -7,8 +7,8 @@ export type ChatItemKind = (typeof CHAT_ITEM_KINDS)[number];
 /**
  * 微信聊天项类型（普通会话与直播会话共用）
  *
- * incoming = 豆包（字节跳动豆包 AI）
- * outgoing = DeepSeek（开源 DeepSeek AI）
+ * incoming = 非己方（对方侧）消息
+ * outgoing = 己方发送的消息
  */
 export type ChatItem =
   | { kind: "timestamp"; text: string }

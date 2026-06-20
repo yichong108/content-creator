@@ -74,10 +74,8 @@ export function LiveSessionEditPage() {
       </Link>
       <LiveSessionForm
         key={currentLiveSession.id}
-        mode="edit"
         heading="编辑直播会话"
         description={`正在编辑 #${currentLiveSession.id}`}
-        lockedNpcIds={currentLiveSession.npc_ids}
         initialValues={liveSessionToFormValues(currentLiveSession)}
         submitting={submitting}
         error={error}

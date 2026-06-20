@@ -11,7 +11,8 @@ export interface LiveSessionSummary {
   title: string;
   description: string | null;
   chat_item_count: number;
-  npc_ids: number[];
+  peer_npc_ids: number[];
+  self_npc_id: number | null;
   enabled: boolean;
   running: boolean;
   created_at: string;
@@ -23,7 +24,8 @@ export interface LiveSessionSummary {
  */
 export interface LiveSessionDetail extends LiveSessionSummary {
   chat_items: ChatItem[];
-  npcs: NpcSummary[];
+  peer_npcs: NpcSummary[];
+  self_npc: NpcSummary | null;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface LiveSessionDetail extends LiveSessionSummary {
 export interface LiveSessionFormPayload {
   title: string;
   description: string | null;
+  peer_npc_ids?: number[];
+  self_npc_id?: number | null;
   chat_items?: ChatItem[];
-  npc_ids?: number[];
-  add_npc_ids?: number[];
 }

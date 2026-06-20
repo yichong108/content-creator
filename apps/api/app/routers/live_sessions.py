@@ -35,9 +35,10 @@ from app.services.chat_items_generator import generate_chat_items
 from app.services.live_session_events import live_session_event_hub
 from app.services.live_session_npcs import (
     dedupe_npc_ids,
-    fetch_npc_rows_by_ids,
     load_npc_summaries,
-    merge_npc_chat_items,
+    load_npc_summary,
+    merge_session_npc_chat_items,
+    resolve_session_npc_rows,
 )
 from app.services.live_session_runner import live_session_runner
 from app.services.session_title_generator import generate_session_title
@@ -61,7 +62,8 @@ def _to_summary(row: LiveSessionRow) -> LiveSessionSummary:
         title=row.title,
         description=row.description,
         chat_item_count=len(row.chat_items),
-        npc_ids=list(row.npc_ids or []),
+        peer_npc_ids=list(row.peer_npc_ids or []),
+        self_npc_id=row.self_npc_id,
         enabled=row.enabled,
         running=row.running,
         created_at=row.created_at,
@@ -79,20 +81,23 @@ async def _to_detail(row: LiveSessionRow, db: AsyncSession) -> LiveSessionDetail
         含 chat_items 的直播会话详情。
     """
     chat_items = [ChatItem.model_validate(item) for item in row.chat_items]
-    npc_ids = list(row.npc_ids or [])
-    npcs = await load_npc_summaries(db, npc_ids)
+    peer_npc_ids = list(row.peer_npc_ids or [])
+    peer_npcs = await load_npc_summaries(db, peer_npc_ids)
+    self_npc = await load_npc_summary(db, row.self_npc_id)
     return LiveSessionDetail(
         id=row.id,
         title=row.title,
         description=row.description,
         chat_item_count=len(chat_items),
-        npc_ids=npc_ids,
+        peer_npc_ids=peer_npc_ids,
+        self_npc_id=row.self_npc_id,
         enabled=row.enabled,
         running=row.running,
         created_at=row.created_at,
         updated_at=row.updated_at,
         chat_items=chat_items,
-        npcs=npcs,
+        peer_npcs=peer_npcs,
+        self_npc=self_npc,
     )
 
 
@@ -237,21 +242,25 @@ async def create_live_session(
     Returns:
         统一 ``ApiResponse`` 包裹的新建直播会话详情。
     """
-    npc_ids = dedupe_npc_ids(payload.npc_ids)
+    peer_npc_ids = dedupe_npc_ids(payload.peer_npc_ids)
     try:
-        await fetch_npc_rows_by_ids(db, npc_ids)
+        peer_rows, self_row = await resolve_session_npc_rows(
+            db,
+            peer_npc_ids,
+            payload.self_npc_id,
+        )
     except ValueError as exc:
         return fail(ERR_BAD_REQUEST, str(exc))
 
     chat_items = [item.model_dump() for item in payload.chat_items]
-    if not chat_items and npc_ids:
-        npc_rows = await fetch_npc_rows_by_ids(db, npc_ids)
-        chat_items = merge_npc_chat_items(npc_rows)
+    if not chat_items and (peer_rows or self_row is not None):
+        chat_items = merge_session_npc_chat_items(peer_rows, self_row)
 
     row = LiveSessionRow(
         title=payload.title,
         description=payload.description,
-        npc_ids=npc_ids,
+        peer_npc_ids=peer_npc_ids,
+        self_npc_id=payload.self_npc_id,
         chat_items=chat_items,
     )
     db.add(row)
@@ -286,23 +295,26 @@ async def update_live_session(
     if payload.description is not None:
         row.description = payload.description
 
-    if payload.add_npc_ids:
-        add_npc_ids = dedupe_npc_ids(payload.add_npc_ids)
-        existing_npc_ids = list(row.npc_ids or [])
-        duplicate_ids = [npc_id for npc_id in add_npc_ids if npc_id in existing_npc_ids]
-        if duplicate_ids:
-            return fail(
-                ERR_BAD_REQUEST,
-                f"NPC 已关联，无法重复添加: {', '.join(str(npc_id) for npc_id in duplicate_ids)}",
-            )
+    npc_fields_updated = "peer_npc_ids" in payload.model_fields_set or "self_npc_id" in payload.model_fields_set
+    if "peer_npc_ids" in payload.model_fields_set:
+        row.peer_npc_ids = dedupe_npc_ids(payload.peer_npc_ids or [])
+    if "self_npc_id" in payload.model_fields_set:
+        row.self_npc_id = payload.self_npc_id
 
+    if npc_fields_updated:
         try:
-            new_npc_rows = await fetch_npc_rows_by_ids(db, add_npc_ids)
+            peer_rows, self_row = await resolve_session_npc_rows(
+                db,
+                list(row.peer_npc_ids or []),
+                row.self_npc_id,
+            )
         except ValueError as exc:
             return fail(ERR_BAD_REQUEST, str(exc))
 
-        row.npc_ids = [*existing_npc_ids, *add_npc_ids]
-        row.chat_items = [*row.chat_items, *merge_npc_chat_items(new_npc_rows)]
+        if payload.chat_items is not None:
+            row.chat_items = [item.model_dump() for item in payload.chat_items]
+        else:
+            row.chat_items = merge_session_npc_chat_items(peer_rows, self_row)
     elif payload.chat_items is not None:
         row.chat_items = [item.model_dump() for item in payload.chat_items]
 

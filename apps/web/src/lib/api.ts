@@ -21,7 +21,7 @@ export interface LiveWsMessagePayload {
 export interface LiveWsTypingPayload {
   live_session_id: number;
   typing: boolean;
-  /** incoming = 对方，outgoing = 自己 */
+  /** incoming = 非己方（对方侧），outgoing = 己方 */
   speaker: "incoming" | "outgoing";
 }
 

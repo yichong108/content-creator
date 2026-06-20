@@ -1,9 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { generateChatItems, generateSessionTitle } from "@/api/sessions";
 import type { ChatSessionFormValues } from "@/components/chat-session-form-types";
+import { SessionNpcFields } from "@/components/SessionNpcFields";
 import { parseChatItemsJson, stringifyChatItems } from "@/lib/chat-items";
+import { mergeNpcChatItems } from "@/lib/merge-npc-chat-items";
 import { getRequestErrorMessage } from "@/lib/request";
+import { useNpcStore } from "@/stores/npc-store";
 import type { SessionFormPayload } from "@/types/session";
 
 interface SessionFormProps {
@@ -38,14 +41,38 @@ export function SessionForm({
   onSubmit,
   onCancel,
 }: SessionFormProps) {
+  const npcs = useNpcStore((state) => state.npcs);
+  const listLoading = useNpcStore((state) => state.listLoading);
+  const loadNpcs = useNpcStore((state) => state.loadNpcs);
+
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [formDescription, setFormDescription] = useState(initialValues?.description ?? "");
   const [chatItemsJson, setChatItemsJson] = useState(initialValues?.chatItemsJson ?? "[]");
+  const [peerNpcIds, setPeerNpcIds] = useState<number[]>(initialValues?.peerNpcIds ?? []);
+  const [selfNpcId, setSelfNpcId] = useState<number | null>(initialValues?.selfNpcId ?? null);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [generatingTitle, setGeneratingTitle] = useState(false);
   const [generatingChatItems, setGeneratingChatItems] = useState(false);
 
   const generating = generatingTitle || generatingChatItems;
+
+  useEffect(() => {
+    void loadNpcs();
+  }, [loadNpcs]);
+
+  const syncChatItemsFromNpcs = (nextPeerNpcIds: number[], nextSelfNpcId: number | null) => {
+    setChatItemsJson(stringifyChatItems(mergeNpcChatItems(npcs, nextPeerNpcIds, nextSelfNpcId)));
+  };
+
+  const handlePeerNpcChange = (npcIds: number[]) => {
+    setPeerNpcIds(npcIds);
+    syncChatItemsFromNpcs(npcIds, selfNpcId);
+  };
+
+  const handleSelfNpcChange = (npcId: number | null) => {
+    setSelfNpcId(npcId);
+    syncChatItemsFromNpcs(peerNpcIds, npcId);
+  };
 
   const handleGenerateTitle = async () => {
     setFieldError(null);
@@ -115,6 +142,8 @@ export function SessionForm({
     await onSubmit({
       title: trimmedTitle,
       description: trimmedDescription.length > 0 ? trimmedDescription : null,
+      peer_npc_ids: peerNpcIds,
+      self_npc_id: selfNpcId,
       chat_items: parsed.data,
     });
   };
@@ -133,6 +162,16 @@ export function SessionForm({
       {displayError ? <div className="alert alert-error">{displayError}</div> : null}
 
       <form className="card form" onSubmit={(event) => void handleSubmit(event)}>
+        <SessionNpcFields
+          npcs={npcs}
+          listLoading={listLoading}
+          peerNpcIds={peerNpcIds}
+          selfNpcId={selfNpcId}
+          onPeerNpcChange={handlePeerNpcChange}
+          onSelfNpcChange={handleSelfNpcChange}
+          disabled={submitting || generating}
+        />
+
         <div className="form-field">
           <div className="form-label-row">
             <span className="form-label">标题</span>
@@ -182,7 +221,8 @@ export function SessionForm({
             </button>
           </div>
           <span className="form-hint">
-            数组格式，每项包含 kind（timestamp/system/incoming/outgoing）与 text；可根据标题自动生成
+            数组格式，每项包含 kind（timestamp/system/incoming/outgoing）与 text；incoming
+            为非己方，outgoing 为己方；可根据标题自动生成
           </span>
           <textarea
             className="form-textarea form-textarea--code"

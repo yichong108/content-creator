@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.schemas.chat_item import ChatItem
+from app.schemas.npc import NpcSummary
 
 
 class SessionSummary(BaseModel):
@@ -12,6 +13,8 @@ class SessionSummary(BaseModel):
     title: str = Field(description="会话标题")
     description: str | None = Field(default=None, description="会话描述")
     chat_item_count: int = Field(description="聊天记录条数")
+    peer_npc_ids: list[int] = Field(default_factory=list, description="对方 NPC ID 列表")
+    self_npc_id: int | None = Field(default=None, description="己方 NPC ID")
     mobile_enabled: bool = Field(description="是否在移动端展示")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="更新时间")
@@ -21,6 +24,8 @@ class SessionDetail(SessionSummary):
     """会话详情，包含完整聊天记录 JSON。"""
 
     chat_items: list[ChatItem] = Field(description="聊天记录数组")
+    peer_npcs: list[NpcSummary] = Field(default_factory=list, description="对方 NPC 详情列表")
+    self_npc: NpcSummary | None = Field(default=None, description="己方 NPC 详情")
 
 
 class SessionCreate(BaseModel):
@@ -28,6 +33,8 @@ class SessionCreate(BaseModel):
 
     title: str = Field(min_length=1, max_length=200, description="会话标题")
     description: str | None = Field(default=None, description="会话描述")
+    peer_npc_ids: list[int] = Field(default_factory=list, description="对方 NPC ID 列表")
+    self_npc_id: int | None = Field(default=None, description="己方 NPC ID")
     chat_items: list[ChatItem] = Field(default_factory=list, description="聊天记录数组")
 
 
@@ -36,6 +43,8 @@ class SessionUpdate(BaseModel):
 
     title: str | None = Field(default=None, min_length=1, max_length=200, description="会话标题")
     description: str | None = Field(default=None, description="会话描述")
+    peer_npc_ids: list[int] | None = Field(default=None, description="对方 NPC ID 列表")
+    self_npc_id: int | None = Field(default=None, description="己方 NPC ID")
     chat_items: list[ChatItem] | None = Field(default=None, description="聊天记录数组")
 
 

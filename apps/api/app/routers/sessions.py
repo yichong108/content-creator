@@ -31,6 +31,13 @@ from app.services.ai_errors import (
 from app.services.ai_http import fail_from_ai_error
 from app.services.ai_provider import validate_ai_config
 from app.services.chat_items_generator import generate_chat_items
+from app.services.live_session_npcs import (
+    dedupe_npc_ids,
+    load_npc_summaries,
+    load_npc_summary,
+    merge_session_npc_chat_items,
+    resolve_session_npc_rows,
+)
 from app.services.session_title_generator import generate_session_title
 
 logger = logging.getLogger(__name__)
@@ -52,31 +59,41 @@ def _to_summary(row: SessionRow) -> SessionSummary:
         title=row.title,
         description=row.description,
         chat_item_count=len(row.chat_items),
+        peer_npc_ids=list(row.peer_npc_ids or []),
+        self_npc_id=row.self_npc_id,
         mobile_enabled=row.mobile_enabled,
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
 
 
-def _to_detail(row: SessionRow) -> SessionDetail:
+async def _to_detail(row: SessionRow, db: AsyncSession) -> SessionDetail:
     """将 ORM 行转换为会话详情。
 
     Args:
         row: 数据库会话行。
+        db: 异步数据库会话。
 
     Returns:
-        含 chat_items 的会话详情。
+        含 chat_items 与关联 NPC 的会话详情。
     """
     chat_items = [ChatItem.model_validate(item) for item in row.chat_items]
+    peer_npc_ids = list(row.peer_npc_ids or [])
+    peer_npcs = await load_npc_summaries(db, peer_npc_ids)
+    self_npc = await load_npc_summary(db, row.self_npc_id)
     return SessionDetail(
         id=row.id,
         title=row.title,
         description=row.description,
         chat_item_count=len(chat_items),
+        peer_npc_ids=peer_npc_ids,
+        self_npc_id=row.self_npc_id,
         mobile_enabled=row.mobile_enabled,
         created_at=row.created_at,
         updated_at=row.updated_at,
         chat_items=chat_items,
+        peer_npcs=peer_npcs,
+        self_npc=self_npc,
     )
 
 
@@ -202,7 +219,7 @@ async def get_session(
         HTTPException: 会话不存在时返回 404。
     """
     row = await _get_session_row(session_id, db)
-    return ok(_to_detail(row))
+    return ok(await _to_detail(row, db))
 
 
 @router.post("", response_model=ApiResponse[SessionDetail])
@@ -219,15 +236,31 @@ async def create_session(
     Returns:
         统一 ``ApiResponse`` 包裹的新建会话详情。
     """
+    peer_npc_ids = dedupe_npc_ids(payload.peer_npc_ids)
+    try:
+        peer_rows, self_row = await resolve_session_npc_rows(
+            db,
+            peer_npc_ids,
+            payload.self_npc_id,
+        )
+    except ValueError as exc:
+        return fail(ERR_BAD_REQUEST, str(exc))
+
+    chat_items = [item.model_dump() for item in payload.chat_items]
+    if not chat_items and (peer_rows or self_row is not None):
+        chat_items = merge_session_npc_chat_items(peer_rows, self_row)
+
     row = SessionRow(
         title=payload.title,
         description=payload.description,
-        chat_items=[item.model_dump() for item in payload.chat_items],
+        peer_npc_ids=peer_npc_ids,
+        self_npc_id=payload.self_npc_id,
+        chat_items=chat_items,
     )
     db.add(row)
     await db.commit()
     await db.refresh(row)
-    return ok(_to_detail(row))
+    return ok(await _to_detail(row, db))
 
 
 @router.put("/{session_id}", response_model=ApiResponse[SessionDetail])
@@ -255,12 +288,33 @@ async def update_session(
         row.title = payload.title
     if payload.description is not None:
         row.description = payload.description
-    if payload.chat_items is not None:
+
+    npc_fields_updated = "peer_npc_ids" in payload.model_fields_set or "self_npc_id" in payload.model_fields_set
+    if "peer_npc_ids" in payload.model_fields_set:
+        row.peer_npc_ids = dedupe_npc_ids(payload.peer_npc_ids or [])
+    if "self_npc_id" in payload.model_fields_set:
+        row.self_npc_id = payload.self_npc_id
+
+    if npc_fields_updated:
+        try:
+            peer_rows, self_row = await resolve_session_npc_rows(
+                db,
+                list(row.peer_npc_ids or []),
+                row.self_npc_id,
+            )
+        except ValueError as exc:
+            return fail(ERR_BAD_REQUEST, str(exc))
+
+        if payload.chat_items is not None:
+            row.chat_items = [item.model_dump() for item in payload.chat_items]
+        else:
+            row.chat_items = merge_session_npc_chat_items(peer_rows, self_row)
+    elif payload.chat_items is not None:
         row.chat_items = [item.model_dump() for item in payload.chat_items]
 
     await db.commit()
     await db.refresh(row)
-    return ok(_to_detail(row))
+    return ok(await _to_detail(row, db))
 
 
 @router.patch("/{session_id}/mobile-enabled", response_model=ApiResponse[SessionSummary])

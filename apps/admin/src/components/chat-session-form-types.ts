@@ -3,5 +3,6 @@ export interface ChatSessionFormValues {
   title: string;
   description: string;
   chatItemsJson: string;
-  npcIds?: number[];
+  peerNpcIds?: number[];
+  selfNpcId?: number | null;
 }

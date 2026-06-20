@@ -127,12 +127,16 @@ export function LiveSessionDetailPage() {
               <span>{currentLiveSession.chat_item_count}</span>
             </div>
             <div>
-              <span className="meta-label">关联 NPC</span>
+              <span className="meta-label">对方 NPC</span>
               <span>
-                {currentLiveSession.npcs.length > 0
-                  ? currentLiveSession.npcs.map((npc) => npc.name).join("、")
+                {currentLiveSession.peer_npcs.length > 0
+                  ? currentLiveSession.peer_npcs.map((npc) => npc.name).join("、")
                   : "—"}
               </span>
+            </div>
+            <div>
+              <span className="meta-label">己方 NPC</span>
+              <span>{currentLiveSession.self_npc?.name ?? "—"}</span>
             </div>
             <div>
               <span className="meta-label">直播展示</span>
@@ -148,17 +152,32 @@ export function LiveSessionDetailPage() {
             </div>
           </div>
 
-          {currentLiveSession.npcs.length > 0 ? (
+          {currentLiveSession.peer_npcs.length > 0 || currentLiveSession.self_npc ? (
             <div className="card">
               <h2 className="section-title">关联 NPC</h2>
               <div className="npc-picker npc-picker--readonly">
-                {currentLiveSession.npcs.map((npc) => (
+                {currentLiveSession.peer_npcs.map((npc) => (
                   <div key={npc.id} className="npc-picker-item npc-picker-item--locked">
                     <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={32} />
-                    <span className="npc-picker-name">{npc.name}</span>
+                    <span className="npc-picker-name">对方：{npc.name}</span>
                     <span className="npc-picker-meta">{npc.chat_item_count} 条对话</span>
                   </div>
                 ))}
+                {currentLiveSession.self_npc ? (
+                  <div className="npc-picker-item npc-picker-item--locked">
+                    <NpcAvatar
+                      name={currentLiveSession.self_npc.name}
+                      avatarUrl={currentLiveSession.self_npc.avatar_url}
+                      size={32}
+                    />
+                    <span className="npc-picker-name">
+                      己方：{currentLiveSession.self_npc.name}
+                    </span>
+                    <span className="npc-picker-meta">
+                      {currentLiveSession.self_npc.chat_item_count} 条对话
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
