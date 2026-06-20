@@ -318,7 +318,7 @@ export function LiveSessionListPage() {
         open={previewSessionId != null}
         sessionId={previewSessionId}
         sessionTitle={previewSessionTitle}
-        previewPath="/chatPage"
+        previewPath="/chatMessageListPage"
         fetchSessionDetail={fetchPreviewSession}
         onClose={handleClosePreview}
       />

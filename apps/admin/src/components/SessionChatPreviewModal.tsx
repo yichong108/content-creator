@@ -20,11 +20,11 @@ interface SessionChatPreviewModalProps {
   open: boolean;
   /** 待预览的会话 ID */
   sessionId: number | null;
-  /** 会话标题，用于 iframe 内聊天页顶部展示 */
+  /** 会话标题，用于弹窗标题展示 */
   sessionTitle: string;
   /** 关闭弹窗回调 */
   onClose: () => void;
-  /** iframe 嵌入的 web 页路径，默认移动端首页 */
+  /** iframe 嵌入的 web 页路径，默认消息列表预览页 */
   previewPath?: string;
   /** 自定义会话详情拉取函数，缺省时使用普通会话 API */
   fetchSessionDetail?: (sessionId: number) => Promise<RequestResult<SessionPreviewDetail>>;
@@ -40,7 +40,7 @@ export function SessionChatPreviewModal({
   sessionId,
   sessionTitle,
   onClose,
-  previewPath = "/capturePage",
+  previewPath = "/chatMessageListPage",
   fetchSessionDetail,
 }: SessionChatPreviewModalProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);

@@ -1,7 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 
 import { WechatChatMessageList } from "@/components/WechatChatMessageList";
-import { useChatPreviewPostMessage } from "@/hooks/useChatPreviewPostMessage";
 import { useLiveChatStream } from "@/hooks/useLiveChatStream";
 
 /**
@@ -26,22 +25,13 @@ function parseSessionId(sessionId: string | undefined): number | undefined {
 /**
  * 聊天页
  *
- * 负责从 API 或 iframe postMessage 获取聊天记录，并用 WechatChatMessageList 渲染消息区域。
- * 非嵌入模式下通过 WebSocket 接收 running 会话的新消息追加。
+ * 通过 WebSocket 拉取 running 会话的聊天记录，并用 WechatChatMessageList 渲染消息区域。
  */
 export function ChatPage() {
   const navigate = useNavigate();
   const { sessionId: sessionIdParam } = useParams<{ sessionId?: string }>();
   const sessionId = parseSessionId(sessionIdParam);
-  const preview = useChatPreviewPostMessage();
   const live = useLiveChatStream(sessionId);
-
-  const title = preview.embedded ? (preview.received ? preview.title : "豆包") : live.title;
-  const loading = preview.embedded ? !preview.received : live.loading;
-  const chatItems = preview.embedded ? (preview.received ? preview.chatItems : []) : live.chatItems;
-  const error = preview.embedded ? null : live.error;
-  const peerTyping = preview.embedded ? false : live.peerTyping;
-  const onBack = preview.embedded ? undefined : () => navigate("/");
 
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
@@ -50,7 +40,7 @@ export function ChatPage() {
           type="button"
           className="-ml-1 flex h-8 w-8 items-center justify-center"
           aria-label="返回"
-          onClick={onBack}
+          onClick={() => navigate("/")}
         >
           <img
             src="/back-arrow.png"
@@ -61,7 +51,9 @@ export function ChatPage() {
             aria-hidden
           />
         </button>
-        <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">{title}</h1>
+        <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">
+          {live.title}
+        </h1>
         <button
           type="button"
           className="flex h-8 w-8 items-center justify-center"
@@ -79,10 +71,10 @@ export function ChatPage() {
       </header>
 
       <WechatChatMessageList
-        chatItems={chatItems}
-        loading={loading}
-        error={error}
-        peerTyping={peerTyping}
+        chatItems={live.chatItems}
+        loading={live.loading}
+        error={live.error}
+        peerTyping={live.peerTyping}
       />
 
       <footer className="shrink-0">

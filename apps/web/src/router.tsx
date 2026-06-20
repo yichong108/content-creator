@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { CapturePage } from "@/pages/CapturePage";
 import { ChatPage } from "@/pages/ChatPage";
 import { SessionListPage } from "@/pages/SessionListPage";
+import { WechatChatMessageListPage } from "@/pages/WechatChatMessageListPage";
 import { StartSessionLayout } from "@/pages/StartSessionLayout";
 import { StartSessionPage } from "@/pages/StartSessionPage";
 import { StartSessionSelectNpcPage } from "@/pages/StartSessionSelectNpcPage";
@@ -21,6 +22,7 @@ export function AppRouter() {
         </Route>
         <Route path="capturePage/:sessionId?" element={<CapturePage />} />
         <Route path="chatPage/:sessionId?" element={<ChatPage />} />
+        <Route path="chatMessageListPage" element={<WechatChatMessageListPage />} />
       </Routes>
     </BrowserRouter>
   );

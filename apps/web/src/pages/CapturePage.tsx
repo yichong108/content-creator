@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { WechatChatPage } from "@/components/WechatChatPage";
 import type { ChatItem } from "@/data/chat-items";
-import { useChatPreviewPostMessage } from "@/hooks/useChatPreviewPostMessage";
 import { fetchChatItems } from "@/lib/api";
 import { getRequestErrorMessage } from "@/lib/request";
 
@@ -31,29 +30,19 @@ function parseSessionId(sessionId: string | undefined): number | undefined {
 /**
  * 截图页（独立路由，仅供截图脚本等工具直接访问）
  *
- * 负责从 API 或 iframe postMessage 获取聊天记录，并传给 WechatChatPage 渲染。
+ * 从 API 拉取聊天记录并传给 WechatChatPage 渲染。
  * 应用内会话列表与发起会话应跳转至 ChatPage，而非本页。
  */
 export function CapturePage() {
   const navigate = useNavigate();
   const { sessionId: sessionIdParam } = useParams<{ sessionId?: string }>();
   const sessionId = parseSessionId(sessionIdParam);
-  const preview = useChatPreviewPostMessage();
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
-  const [loading, setLoading] = useState(!preview.embedded);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
 
   useEffect(() => {
-    if (preview.embedded) {
-      if (preview.received) {
-        setChatItems(preview.chatItems);
-        setLoading(false);
-        setError(null);
-      }
-      return;
-    }
-
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -84,18 +73,15 @@ export function CapturePage() {
     return () => {
       cancelled = true;
     };
-  }, [preview.embedded, preview.received, preview.chatItems, sessionId]);
-
-  const title = preview.embedded ? preview.title : (sessionTitle ?? DEFAULT_TITLE);
-  const handleBack = preview.embedded ? undefined : () => navigate("/");
+  }, [sessionId]);
 
   return (
     <WechatChatPage
-      title={title}
+      title={sessionTitle ?? DEFAULT_TITLE}
       chatItems={chatItems}
       loading={loading}
       error={error}
-      onBack={handleBack}
+      onBack={() => navigate("/")}
     />
   );
 }
