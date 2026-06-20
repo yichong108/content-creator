@@ -1,8 +1,5 @@
-import { useEffect, useRef } from "react";
-
-import { WechatMessageText } from "@/components/WechatMessageText";
+import { WechatChatMessageList } from "@/components/WechatChatMessageList";
 import type { ChatItem } from "@/data/chat-items";
-import { resolveChatItemAvatarUrl } from "@/lib/chat-item-avatar";
 
 export type WechatChatPageProps = {
   /** 聊天页顶部标题（对方昵称） */
@@ -19,86 +16,6 @@ export type WechatChatPageProps = {
   onBack?: () => void;
 };
 
-function MessageAvatar({ src, alt }: { src: string; alt: string }) {
-  const size = Math.round(18 + 17 * 1.4);
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      width={size}
-      height={size}
-      className="h-[calc(18px+17px*1.4)] w-[calc(18px+17px*1.4)] shrink-0 rounded-[4px] object-cover"
-    />
-  );
-}
-
-function FallbackAvatar({ variant }: { variant: "self" | "other" }) {
-  const src = variant === "self" ? "/avatar-self.png" : "/avatar-other.png";
-  const alt = variant === "self" ? "我的头像" : "对方头像";
-  return <MessageAvatar src={src} alt={alt} />;
-}
-
-function ChatRow({ item }: { item: ChatItem }) {
-  if (item.kind === "timestamp") {
-    return (
-      <p className="pb-4 pt-[calc(1rem+5px)] text-center text-[12px] leading-[1.2] text-[var(--wechat-text-secondary)]">
-        {item.text}
-      </p>
-    );
-  }
-
-  if (item.kind === "system") {
-    return (
-      <p className="py-2.5 text-center text-[14px] leading-[1.2] text-[var(--wechat-text-secondary)]">
-        {item.text}
-      </p>
-    );
-  }
-
-  if (item.kind === "incoming") {
-    return (
-      <div className="flex items-start gap-[var(--wechat-avatar-gap)] py-1.5">
-        <MessageAvatar
-          src={resolveChatItemAvatarUrl(item.npc_avatar_url)}
-          alt={`${item.npc_name} 头像`}
-        />
-        <div className="wechat-bubble-in">
-          <WechatMessageText text={item.text} />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-row-reverse items-start gap-[var(--wechat-avatar-gap)] py-1.5">
-      <MessageAvatar
-        src={resolveChatItemAvatarUrl(item.npc_avatar_url)}
-        alt={`${item.npc_name} 头像`}
-      />
-      <div className="wechat-bubble-out">
-        <WechatMessageText text={item.text} />
-      </div>
-    </div>
-  );
-}
-
-function PeerTypingRow() {
-  return (
-    <div className="flex items-start gap-[var(--wechat-avatar-gap)] py-1.5" aria-live="polite">
-      <FallbackAvatar variant="other" />
-      <div className="wechat-bubble-in wechat-typing-bubble">
-        <span className="wechat-typing-dots" aria-hidden>
-          <span />
-          <span />
-          <span />
-        </span>
-        <span className="sr-only">对方正在输入</span>
-      </div>
-    </div>
-  );
-}
-
 /**
  * 微信聊天页完整 UI
  *
@@ -112,16 +29,6 @@ export function WechatChatPage({
   peerTyping = false,
   onBack,
 }: WechatChatPageProps) {
-  const scrollRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const section = scrollRef.current;
-    if (!section || loading || error) {
-      return;
-    }
-    section.scrollTop = section.scrollHeight;
-  }, [chatItems, loading, error, peerTyping]);
-
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col bg-[var(--wechat-bg)]">
       <header className="relative z-10 flex shrink-0 items-center justify-between border-b-[0.5px] border-black/[0.05] px-3 pb-2.5 pt-3">
@@ -157,21 +64,12 @@ export function WechatChatPage({
         </button>
       </header>
 
-      <section
-        ref={scrollRef}
-        className="-mt-px min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(0.25rem+1px)] pt-[calc(0.25rem+1px)]"
-      >
-        {loading && (
-          <p className="py-8 text-center text-[14px] text-[var(--wechat-text-secondary)]">
-            加载中…
-          </p>
-        )}
-        {error && <p className="py-8 text-center text-[14px] text-red-500">{error}</p>}
-        {!loading &&
-          !error &&
-          chatItems.map((item, index) => <ChatRow key={`${item.kind}-${index}`} item={item} />)}
-        {!loading && !error && peerTyping && <PeerTypingRow />}
-      </section>
+      <WechatChatMessageList
+        chatItems={chatItems}
+        loading={loading}
+        error={error}
+        peerTyping={peerTyping}
+      />
 
       <footer className="shrink-0">
         <img

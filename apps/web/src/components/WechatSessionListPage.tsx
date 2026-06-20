@@ -70,7 +70,9 @@ export function WechatSessionListPage({
       <header className="relative z-10 shrink-0 border-b-[0.5px] border-black/[0.05] bg-[var(--wechat-bg)] px-4 pb-2.5 pt-3">
         <div className="flex items-center justify-between">
           <span className="w-8" aria-hidden />
-          <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">百灵</h1>
+          <h1 className="text-[17px] font-medium leading-[1.3] text-[var(--wechat-text)]">
+            聊天会话
+          </h1>
           <button
             type="button"
             className="flex h-8 w-8 items-center justify-center"
