@@ -1,6 +1,7 @@
 import type { ChatItem } from "@/data/chat-items";
 import { request, type RequestResult } from "@/lib/request";
 import type { MobileSessionSummary } from "@/types/mobile-session";
+import type { NpcSummary } from "@/types/npc";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -73,4 +74,44 @@ export function fetchChatItems(liveSessionId?: number): Promise<RequestResult<Ch
 export function fetchLiveChatItems(since?: number): Promise<RequestResult<LiveChatItemsResponse>> {
   const params = since != null ? { since } : undefined;
   return request<LiveChatItemsResponse>({ url: "/api/live/chat-items", params });
+}
+
+/** 创建直播会话的请求体 */
+export interface CreateLiveSessionPayload {
+  title: string;
+  description?: string | null;
+  peer_npc_ids: number[];
+  self_npc_id: number | null;
+  chat_items?: ChatItem[];
+}
+
+/** 创建直播会话的响应（详情） */
+export interface LiveSessionDetail {
+  id: number;
+  title: string;
+}
+
+/**
+ * 获取全部 NPC 列表，供发起会话页选择对方/己方。
+ *
+ * @returns 业务 data 为 NpcSummary 数组
+ */
+export function fetchNpcs(): Promise<RequestResult<NpcSummary[]>> {
+  return request<NpcSummary[]>({ url: "/api/admin/npcs", method: "GET" });
+}
+
+/**
+ * 创建新直播会话。
+ *
+ * @param payload - 会话标题、对方/己方 NPC 等
+ * @returns 业务 data 为新建会话详情
+ */
+export function createLiveSession(
+  payload: CreateLiveSessionPayload,
+): Promise<RequestResult<LiveSessionDetail>> {
+  return request<LiveSessionDetail>({
+    url: "/api/admin/live-sessions",
+    method: "POST",
+    data: payload,
+  });
 }

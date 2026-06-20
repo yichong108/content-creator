@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { WechatSessionListPage } from "@/components/WechatSessionListPage";
 import { fetchMobileSessions } from "@/lib/api";
@@ -11,6 +12,7 @@ import type { MobileSessionSummary } from "@/types/mobile-session";
  * 从 API 拉取移动端可展示的会话列表，并以微信风格列表页渲染。
  */
 export function SessionListPage() {
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<MobileSessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,5 +44,12 @@ export function SessionListPage() {
     };
   }, []);
 
-  return <WechatSessionListPage sessions={sessions} loading={loading} error={error} />;
+  return (
+    <WechatSessionListPage
+      sessions={sessions}
+      loading={loading}
+      error={error}
+      onStartSession={() => navigate("/start-session")}
+    />
+  );
 }

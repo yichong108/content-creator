@@ -31,6 +31,11 @@ DEFAULT_NPC_CHAT_ITEMS: dict[str, tuple[dict[str, str], ...]] = {
         {"kind": "outgoing", "text": "在，咋了"},
         {"kind": "outgoing", "text": "别又是让我帮你写周报"},
     ),
+    "我": (
+        {"kind": "timestamp", "text": "今天 上午10:02"},
+        {"kind": "outgoing", "text": "在吗"},
+        {"kind": "outgoing", "text": "有个事想问你"},
+    ),
 }
 
 
@@ -50,6 +55,14 @@ DEFAULT_NPC_SEEDS: tuple[NpcSeed, ...] = (
         ),
         tags=("AI", "助手"),
         chat_items=DEFAULT_NPC_CHAT_ITEMS["DeepSeek"],
+    ),
+    NpcSeed(
+        name="我",
+        persona_description=(
+            "代表聊天中己方视角的普通用户，语气自然口语化，回复简短真实，像日常微信里和朋友说话一样。"
+        ),
+        tags=("我是NPC",),
+        chat_items=DEFAULT_NPC_CHAT_ITEMS["我"],
     ),
     NpcSeed(
         name="ChatGPT",
