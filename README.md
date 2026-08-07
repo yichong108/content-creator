@@ -1,6 +1,6 @@
-# SoulChat
+# ContentCreator
 
-高仿微信聊天页面，对话内容由 AI 生成。
+面向 content creator 的高仿微信聊天页面，对话内容由 AI 生成。
 
 ## 技术栈
 
@@ -13,7 +13,7 @@
 ## 目录结构
 
 ```
-soulchat/
+contentcreator/
 ├── apps/
 │   ├── web/          # React + Vite 前端
 │   └── api/          # Python 后端

@@ -20,7 +20,7 @@ importers:
 
   apps/admin:
     dependencies:
-      '@soulchat/chat-item':
+      '@contentcreator/chat-item':
         specifier: workspace:*
         version: link:../../packages/chat-item
       axios:
@@ -83,7 +83,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@soulchat/chat-item':
+      '@contentcreator/chat-item':
         specifier: workspace:*
         version: link:../../packages/chat-item
       axios:

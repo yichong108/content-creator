@@ -1,4 +1,4 @@
-import { CHAT_ITEM_KINDS, type ChatItem, type ChatItemKind } from "@soulchat/chat-item";
+import { CHAT_ITEM_KINDS, type ChatItem, type ChatItemKind } from "@contentcreator/chat-item";
 
 export type ParseChatItemsResult = { ok: true; data: ChatItem[] } | { ok: false; message: string };
 

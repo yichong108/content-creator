@@ -1,5 +1,5 @@
 {
-  "name": "soulchat",
+  "name": "contentcreator",
   "private": true,
   "scripts": {
     "setup": "pnpm install && pnpm --dir apps/api setup",

@@ -4,6 +4,7 @@ This file guides AI assistants and contributors working on this repository.
 
 ## Project
 
+ContentCreator — 面向 content creator 的高仿微信聊天页面；技术标识统一使用 `contentcreator`。
 
 ## Package Manager
 

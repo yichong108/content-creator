@@ -1235,7 +1235,7 @@ wheels = [
 ]
 
 [[package]]
-name = "soulchat-api"
+name = "contentcreator-api"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

@@ -144,7 +144,7 @@ function CursorSdkConfigFields({ value, onChange, disabled = false }: CursorSdkC
           className="form-input"
           value={value.cwd}
           onChange={(event) => patch({ cwd: event.target.value })}
-          placeholder="d:/path/to/soulchat"
+          placeholder="d:/path/to/contentcreator"
           disabled={disabled || value.runtime === "cloud"}
         />
       </label>
@@ -156,7 +156,7 @@ function CursorSdkConfigFields({ value, onChange, disabled = false }: CursorSdkC
           className="form-input form-textarea"
           value={value.repos}
           onChange={(event) => patch({ repos: event.target.value })}
-          placeholder="https://github.com/your-org/soulchat"
+          placeholder="https://github.com/your-org/contentcreator"
           rows={3}
           disabled={disabled || value.runtime === "local"}
         />

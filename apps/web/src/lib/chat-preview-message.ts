@@ -1,14 +1,14 @@
 import type { ChatItem } from "@/data/chat-items";
 
 /** postMessage 协议标识，用于过滤无关消息 */
-export const CHAT_PREVIEW_MESSAGE_SOURCE = "soulchat" as const;
+export const CHAT_PREVIEW_MESSAGE_SOURCE = "contentcreator" as const;
 
 /** 聊天记录预览 postMessage 事件类型 */
 export const ChatPreviewMessageType = {
   /** iframe 内 web 页加载完成，可向父页面请求数据 */
-  READY: "soulchat:chat-preview-ready",
+  READY: "contentcreator:chat-preview-ready",
   /** 父页面向 iframe 推送聊天记录 */
-  DATA: "soulchat:chat-preview-data",
+  DATA: "contentcreator:chat-preview-data",
 } as const;
 
 /** 父页面推送给 iframe 的聊天记录载荷 */

@@ -8,9 +8,9 @@ export function AdminLayout() {
     <div className="admin-shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark">WB</span>
+          <span className="brand-mark">CC</span>
           <div>
-            <strong>SoulChat</strong>
+            <strong>ContentCreator</strong>
             <span className="brand-sub">管理后台</span>
           </div>
         </div>
