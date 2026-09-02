@@ -4,7 +4,7 @@ import logging
 from pydantic import BaseModel, Field
 
 from app.schemas.chat_item import ChatItem
-from app.services.ai_provider import get_active_config, invoke_structured_output
+from app.services.ai_provider import invoke_structured_output
 
 logger = logging.getLogger(__name__)
 
@@ -114,9 +114,6 @@ async def generate_session_title(
 ) -> str:
     """根据可选上下文异步生成会话标题。
 
-    Cursor SDK 的 Bridge 不能在 ``asyncio.to_thread`` 中首次初始化，
-    因此 cursor_sdk 提供商在主线程同步执行。
-
     Args:
         description: 可选会话描述。
         chat_items: 可选聊天记录。
@@ -132,6 +129,4 @@ async def generate_session_title(
         AiResponseError: 模型返回空结果。
         ValueError: 模型返回空结果。
     """
-    if get_active_config().provider == "cursor_sdk":
-        return _generate_session_title_sync(description, chat_items)
     return await asyncio.to_thread(_generate_session_title_sync, description, chat_items)

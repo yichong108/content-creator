@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.models.npc import NpcRow
 from app.schemas.chat_item import ChatItem
-from app.services.ai_provider import get_active_config, invoke_structured_output
+from app.services.ai_provider import invoke_structured_output
 from app.services.chat_item_npc import enrich_chat_item_with_npc_info
 from app.services.chat_npc_persona import NpcPersona, build_persona_prompt_section, personas_from_npc_rows
 
@@ -144,9 +144,6 @@ async def generate_live_chat_item(
 ) -> ChatItem:
     """根据标题、人设与已有记录异步续写单条新消息。
 
-    Cursor SDK 的 Bridge 不能在 ``asyncio.to_thread`` 中首次初始化，
-    因此 cursor_sdk 提供商在主线程同步执行。
-
     Args:
         title: 已去除首尾空白的会话标题。
         existing_items: 当前会话已有聊天记录。
@@ -164,8 +161,6 @@ async def generate_live_chat_item(
         AiResponseError: 模型返回空结果。
         ValueError: 模型未返回有效消息。
     """
-    if get_active_config().provider == "cursor_sdk":
-        return _generate_live_chat_item_sync(title, existing_items, peer_npc_rows, self_npc_row)
     return await asyncio.to_thread(
         _generate_live_chat_item_sync,
         title,

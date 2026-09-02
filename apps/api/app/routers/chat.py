@@ -24,8 +24,6 @@ logger = logging.getLogger(__name__)
 async def chat(request: ChatRequest) -> ApiResponse[ChatResponse | None]:
     """根据对话历史调用聊天图，返回助手回复。
 
-    提供商由管理后台 ``ai_config.json`` 中的 ``provider`` 决定。
-
     Args:
         request: 含完整 messages 列表的请求体。
 

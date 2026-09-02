@@ -506,10 +506,6 @@ button.link {
   gap: 12px;
 }
 
-.radio-group--provider {
-  gap: 16px;
-}
-
 .radio-option {
   display: inline-flex;
   align-items: center;
@@ -531,10 +527,6 @@ button.link {
 
 .config-panel .section-title {
   margin-bottom: 0;
-}
-
-.config-panel--hidden {
-  display: none;
 }
 
 .ai-config-form .form-actions--page-footer {

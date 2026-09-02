@@ -17,20 +17,17 @@ from app.routers.chat_items import router as chat_items_router
 from app.routers.health import router as health_router
 from app.routers.live_sessions import router as live_sessions_router
 from app.routers.npcs import router as npcs_router
-from app.services.cursor_bridge import ensure_cursor_bridge, shutdown_cursor_bridge
 from app.services.live_session_runner import live_session_runner
 from app.services.npc_avatar import ensure_npc_upload_dir
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """应用启动时建表并初始化 Cursor Bridge。"""
+    """应用启动时建表并初始化上传目录。"""
     await init_db()
     ensure_npc_upload_dir()
-    ensure_cursor_bridge()
     yield
     await live_session_runner.stop()
-    shutdown_cursor_bridge()
 
 
 app = FastAPI(title="ContentCreator API", version="0.1.0", lifespan=lifespan)

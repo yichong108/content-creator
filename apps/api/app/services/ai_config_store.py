@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from app.config import settings
-from app.schemas.ai_config import AiConfig
+from app.schemas.ai_config import AiConfig, OpenAiConfig
 
 _API_ROOT = Path(__file__).resolve().parent.parent.parent
 _CONFIG_PATH = _API_ROOT / "data" / "ai_config.json"
@@ -17,12 +17,11 @@ def _default_config() -> AiConfig:
         首次启动或文件缺失时使用的默认配置。
     """
     return AiConfig(
-        provider="openai",
-        openai={
-            "api_key": settings.openai_api_key,
-            "base_url": settings.openai_base_url or "",
-            "model": settings.openai_model,
-        },
+        openai=OpenAiConfig(
+            api_key=settings.openai_api_key,
+            base_url=settings.openai_base_url or "",
+            model=settings.openai_model,
+        ),
     )
 
 
@@ -48,7 +47,7 @@ def save_ai_config(config: AiConfig) -> AiConfig:
     """将 AI 配置写入磁盘。
 
     Args:
-        config: 待保存的完整配置（含两套提供商字段）。
+        config: 待保存的完整配置。
 
     Returns:
         写入后的配置（与入参相同，便于路由直接返回）。
