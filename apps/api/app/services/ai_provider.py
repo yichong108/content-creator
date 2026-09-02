@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
+import re
+from collections.abc import Awaitable
 from typing import Any
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-from openai import APIConnectionError, APIStatusError, AuthenticationError
-from pydantic import BaseModel
+from pi_agent.agent_core import AssistantMessage, LlmContext, LlmMessage, Model, TextContent, UserMessage
+from pi_agent.pi_ai import complete, create_default_registry
+from pydantic import BaseModel, ValidationError
 
 from app.config import settings
 from app.schemas.ai_config import AiConfig, OpenAiConfig
@@ -22,6 +25,8 @@ from app.services.ai_errors import (
 )
 
 logger = logging.getLogger(__name__)
+
+_registry = create_default_registry()
 
 
 def get_active_config() -> AiConfig:
@@ -66,59 +71,152 @@ def _resolve_openai_config(config: AiConfig) -> OpenAiConfig:
     )
 
 
-def _build_openai_model(config: AiConfig, *, max_tokens: int | None = None) -> ChatOpenAI:
-    """构建 LangChain OpenAI 兼容聊天模型。
+def _build_pi_model(openai_cfg: OpenAiConfig) -> Model:
+    """构建 pi-agent OpenAI 兼容模型描述。
 
     Args:
-        config: 完整 AI 配置。
-        max_tokens: 可选最大输出 token 数。
+        openai_cfg: 已解析的 OpenAI 配置。
 
     Returns:
-        已配置 API Key、Base URL 与模型名的实例。
+        指向 OpenAI Completions 兼容端点的 ``Model`` 实例。
     """
-    openai_cfg = _resolve_openai_config(config)
-    kwargs: dict[str, Any] = {
-        "model": openai_cfg.model,
-        "api_key": openai_cfg.api_key or None,
-    }
-    if max_tokens is not None:
-        kwargs["max_tokens"] = max_tokens
-    if openai_cfg.base_url:
-        kwargs["base_url"] = openai_cfg.base_url
-    return ChatOpenAI(**kwargs)
+    return Model(
+        id=openai_cfg.model,
+        provider="openai",
+        api="openai-completions",
+        base_url=openai_cfg.base_url,
+    )
 
 
-def _map_openai_exception(exc: Exception) -> Exception:
-    """将 OpenAI SDK 异常映射为统一 AI 异常。
+def _extract_assistant_text(message: AssistantMessage) -> str:
+    """从 pi-agent 助手消息中提取纯文本。
 
     Args:
-        exc: OpenAI 或网络相关异常。
+        message: pi-agent 返回的助手消息。
+
+    Returns:
+        拼接后的非空文本；无文本块时返回空字符串。
+    """
+    return " ".join(block.text for block in message.content if isinstance(block, TextContent)).strip()
+
+
+def _map_pi_agent_response_error(message: AssistantMessage) -> Exception:
+    """将 pi-agent 错误响应映射为统一 AI 异常。
+
+    Args:
+        message: 含 ``stop_reason`` 与 ``error_message`` 的助手消息。
 
     Returns:
         对应的 ``Ai*`` 异常实例。
     """
-    if isinstance(exc, AuthenticationError):
+    error_msg = (message.error_message or "AI 服务暂时不可用").strip()
+    lower = error_msg.lower()
+    if "authentication" in lower or "api key" in lower or "401" in error_msg:
         return AiAuthenticationError("OpenAI API Key 无效，请检查管理后台或 apps/api/.env")
-    if isinstance(exc, APIConnectionError):
+    if "connection" in lower or "connect" in lower:
         return AiConnectionError("AI 服务连接失败，请稍后重试")
-    if isinstance(exc, APIStatusError):
-        logger.warning("LLM API 错误: %s", exc)
-        return AiUnavailableError("AI 服务暂时不可用，请稍后重试")
-    return exc
+    logger.warning("LLM API 错误: %s", error_msg)
+    return AiUnavailableError("AI 服务暂时不可用，请稍后重试")
 
 
-def _invoke_openai_text(
-    config: AiConfig,
-    messages: list[BaseMessage],
+def _ensure_assistant_text(message: AssistantMessage) -> str:
+    """校验 pi-agent 响应并提取助手文本。
+
+    Args:
+        message: pi-agent 返回的助手消息。
+
+    Returns:
+        非空助手回复文本。
+
+    Raises:
+        AiAuthenticationError: API Key 无效。
+        AiConnectionError: 连接失败。
+        AiUnavailableError: 服务不可用或请求被中止。
+        AiResponseError: 返回空结果。
+    """
+    if message.stop_reason in {"error", "aborted"}:
+        raise _map_pi_agent_response_error(message)
+
+    content = _extract_assistant_text(message)
+    if not content:
+        raise AiResponseError("AI 未返回有效内容")
+    return content
+
+
+def _format_pi_agent_context(
+    messages: list[dict[str, str]],
     *,
-    max_tokens: int | None = None,
+    model_id: str,
+) -> LlmContext:
+    """将 API 层消息字典转为 pi-agent ``LlmContext``。
+
+    Args:
+        messages: ``{"role": "...", "content": "..."}`` 列表。
+        model_id: 当前模型 ID，用于构造历史 assistant 消息。
+
+    Returns:
+        含 system_prompt 与多轮消息的上下文。
+    """
+    system_parts: list[str] = []
+    llm_messages: list[LlmMessage] = []
+
+    for item in messages:
+        role = item.get("role", "user")
+        content = item.get("content", "")
+        if role == "system":
+            system_parts.append(content)
+        elif role == "assistant":
+            llm_messages.append(
+                AssistantMessage(
+                    content=[TextContent(text=content)],
+                    api="openai-completions",
+                    provider="openai",
+                    model=model_id,
+                ),
+            )
+        else:
+            llm_messages.append(UserMessage(content=content))
+
+    system_prompt = "\n\n".join(system_parts) if system_parts else None
+    return LlmContext(system_prompt=system_prompt, messages=llm_messages)
+
+
+def _parse_json_object(text: str) -> dict[str, Any]:
+    """从模型文本响应中解析 JSON 对象。
+
+    Args:
+        text: 模型原始输出，可能含 markdown 代码块。
+
+    Returns:
+        解析后的 JSON 对象。
+
+    Raises:
+        AiResponseError: 文本不是合法 JSON 对象。
+    """
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError as exc:
+        raise AiResponseError("AI 未返回有效的 JSON 结果") from exc
+
+    if not isinstance(parsed, dict):
+        raise AiResponseError("AI 未返回有效的 JSON 结果")
+    return parsed
+
+
+async def _complete_openai_text(
+    config: AiConfig,
+    context: LlmContext,
 ) -> str:
-    """通过 OpenAI 兼容 API 调用聊天模型。
+    """通过 pi-agent 调用 OpenAI 兼容聊天模型。
 
     Args:
         config: 完整 AI 配置。
-        messages: LangChain 消息列表。
-        max_tokens: 可选最大输出 token 数。
+        context: pi-agent 对话上下文。
 
     Returns:
         助手回复文本。
@@ -129,16 +227,26 @@ def _invoke_openai_text(
         AiUnavailableError: 服务不可用。
         AiResponseError: 返回空结果。
     """
-    try:
-        model = _build_openai_model(config, max_tokens=max_tokens)
-        response = model.invoke(messages)
-    except (AuthenticationError, APIConnectionError, APIStatusError) as exc:
-        raise _map_openai_exception(exc) from exc
+    openai_cfg = _resolve_openai_config(config)
+    message = await complete(
+        model=_build_pi_model(openai_cfg),
+        context=context,
+        registry=_registry,
+        api_key=openai_cfg.api_key or None,
+    )
+    return _ensure_assistant_text(message)
 
-    content = str(response.content).strip()
-    if not content:
-        raise AiResponseError("AI 未返回有效内容")
-    return content
+
+def _run_async[T](coro: Awaitable[T]) -> T:
+    """在同步上下文中执行 pi-agent 异步调用。
+
+    Args:
+        coro: 待执行的协程。
+
+    Returns:
+        协程执行结果。
+    """
+    return asyncio.run(coro)  # type: ignore[arg-type]
 
 
 def invoke_structured_output[T: BaseModel](
@@ -172,42 +280,17 @@ def invoke_structured_output[T: BaseModel](
         raise AiConfigurationError(validation_error)
 
     full_user = f"{user_prompt.strip()}\n\n{json_suffix}"
-    messages: list[BaseMessage] = [
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=full_user),
-    ]
+    context = LlmContext(
+        system_prompt=system_prompt,
+        messages=[UserMessage(content=full_user)],
+    )
+    content = _run_async(_complete_openai_text(config, context))
+
     try:
-        model = _build_openai_model(config, max_tokens=8192)
-        structured = model.with_structured_output(output_type, method="json_mode")
-        result = structured.invoke(messages)
-    except (AuthenticationError, APIConnectionError, APIStatusError) as exc:
-        raise _map_openai_exception(exc) from exc
-
-    if not isinstance(result, output_type):
-        raise AiResponseError("AI 未返回有效的 JSON 结果")
-    return result
-
-
-def _format_chat_messages(messages: list[dict[str, str]]) -> list[BaseMessage]:
-    """将 API 层消息字典转为 LangChain 消息。
-
-    Args:
-        messages: ``{"role": "...", "content": "..."}`` 列表。
-
-    Returns:
-        LangChain ``BaseMessage`` 列表。
-    """
-    result: list[BaseMessage] = []
-    for item in messages:
-        role = item.get("role", "user")
-        content = item.get("content", "")
-        if role == "assistant":
-            result.append(AIMessage(content=content))
-        elif role == "system":
-            result.append(SystemMessage(content=content))
-        else:
-            result.append(HumanMessage(content=content))
-    return result
+        parsed = _parse_json_object(content)
+        return output_type.model_validate(parsed)
+    except ValidationError as exc:
+        raise AiResponseError("AI 未返回有效的 JSON 结果") from exc
 
 
 def invoke_chat(messages: list[dict[str, str]]) -> str:
@@ -234,5 +317,6 @@ def invoke_chat(messages: list[dict[str, str]]) -> str:
     if not messages:
         raise AiResponseError("对话消息不能为空")
 
-    lc_messages = _format_chat_messages(messages)
-    return _invoke_openai_text(config, lc_messages)
+    openai_cfg = _resolve_openai_config(config)
+    context = _format_pi_agent_context(messages, model_id=openai_cfg.model)
+    return _run_async(_complete_openai_text(config, context))

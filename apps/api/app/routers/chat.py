@@ -3,7 +3,6 @@ import logging
 
 from fastapi import APIRouter
 
-from app.graph.chat import chat_graph, to_langchain_messages
 from app.schemas.chat import ChatMessage, ChatRequest, ChatResponse
 from app.schemas.response import ApiResponse, ok
 from app.services.ai_errors import (
@@ -14,7 +13,7 @@ from app.services.ai_errors import (
     AiUnavailableError,
 )
 from app.services.ai_http import fail_from_ai_error
-from app.services.ai_provider import validate_ai_config
+from app.services.ai_provider import invoke_chat, validate_ai_config
 
 router = APIRouter(tags=["chat"])
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/chat", response_model=ApiResponse[ChatResponse])
 async def chat(request: ChatRequest) -> ApiResponse[ChatResponse | None]:
-    """根据对话历史调用聊天图，返回助手回复。
+    """根据对话历史调用 AI 聊天补全，返回助手回复。
 
     Args:
         request: 含完整 messages 列表的请求体。
@@ -35,10 +34,9 @@ async def chat(request: ChatRequest) -> ApiResponse[ChatResponse | None]:
         return fail_from_ai_error(AiConfigurationError(validation_error))
 
     payload = [message.model_dump() for message in request.messages]
-    state = {"messages": to_langchain_messages(payload)}
 
     try:
-        result = await asyncio.to_thread(chat_graph.invoke, state)
+        content = await asyncio.to_thread(invoke_chat, payload)
     except (
         AiConfigurationError,
         AiAuthenticationError,
@@ -49,9 +47,8 @@ async def chat(request: ChatRequest) -> ApiResponse[ChatResponse | None]:
     ) as exc:
         return fail_from_ai_error(exc)
 
-    last = result["messages"][-1]
     return ok(
         ChatResponse(
-            message=ChatMessage(role="assistant", content=str(last.content)),
+            message=ChatMessage(role="assistant", content=content),
         ),
     )
