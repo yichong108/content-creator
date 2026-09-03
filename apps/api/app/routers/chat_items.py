@@ -121,7 +121,7 @@ def _live_chat_items_response(row: LiveSessionRow, items: list[ChatItem]) -> Liv
     )
 
 
-def _extract_last_message_preview(chat_items: list[dict[str, object]]) -> str | None:
+def _extract_last_message_preview(chat_items: list[dict[str, str]]) -> str | None:
     """从原始聊天记录中提取最近一条可展示的消息文本。
 
     Args:

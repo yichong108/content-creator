@@ -35,8 +35,11 @@ def success_response[T](data: T, message: str = "success") -> ApiResponse[T]:
     return ApiResponse[T](code=API_SUCCESS_CODE, message=message, data=data)
 
 
-def fail_response(response: Response, code: int, message: str) -> ApiResponse[None]:
+def fail_response[T](response: Response, code: int, message: str) -> ApiResponse[T]:
     """构造失败响应并设置 HTTP 状态码。
+
+    返回类型参数 ``T`` 由调用处期望的 ``ApiResponse[T]`` 推断，
+    避免 ``ApiResponse[None]`` 与具体业务数据类型不兼容。
 
     Args:
         response: FastAPI 响应对象，用于写入 HTTP 状态码。
@@ -44,10 +47,10 @@ def fail_response(response: Response, code: int, message: str) -> ApiResponse[No
         message: 人类可读错误描述。
 
     Returns:
-        ``data=None`` 的 ``ApiResponse``。
+        ``data=None`` 的 ``ApiResponse[T]``。
     """
     response.status_code = http_status_for_business_code(code)
-    return ApiResponse[None](code=code, message=message, data=None)
+    return ApiResponse[T](code=code, message=message, data=None)
 
 
 def fail_json_response(code: int, message: str) -> JSONResponse:

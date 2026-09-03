@@ -1,10 +1,39 @@
 """聊天记录与 NPC 元数据绑定工具。"""
 
-from typing import Any
+from typing import Any, Literal, cast
 
 from app.models.npc import NpcRow
 from app.schemas.chat_item import ChatItem
 from app.services.npc_avatar import build_default_avatar_url
+
+# 与 ChatItem.kind 一致的合法字面量集合，用于从原始 JSON 收窄类型
+_CHAT_ITEM_KINDS: frozenset[str] = frozenset({"timestamp", "system", "incoming", "outgoing"})
+ChatItemKind = Literal["timestamp", "system", "incoming", "outgoing"]
+
+
+def _draft_chat_item_from_dict(item: dict[str, Any]) -> ChatItem | None:
+    """从原始字典构造未校验的 ChatItem 草稿。
+
+    Args:
+        item: 原始 chat_item 字典。
+
+    Returns:
+        ``kind``/``text`` 合法时的 ``model_construct`` 结果；否则 ``None``。
+    """
+    kind_raw = item.get("kind")
+    text_raw = item.get("text")
+    if not isinstance(kind_raw, str) or kind_raw not in _CHAT_ITEM_KINDS:
+        return None
+    if not isinstance(text_raw, str):
+        return None
+
+    return ChatItem.model_construct(
+        kind=cast(ChatItemKind, kind_raw),
+        text=text_raw,
+        npc_id=item.get("npc_id") if isinstance(item.get("npc_id"), int) else None,
+        npc_name=item.get("npc_name") if isinstance(item.get("npc_name"), str) else None,
+        npc_avatar_url=item.get("npc_avatar_url") if isinstance(item.get("npc_avatar_url"), str) else None,
+    )
 
 
 def resolve_npc_avatar_url(npc_row: NpcRow) -> str:
@@ -121,15 +150,11 @@ def normalize_npc_owned_chat_items(
         校验通过的 ChatItem 列表。
     """
     draft_items = [
-        ChatItem.model_construct(
-            kind=item.get("kind"),
-            text=item.get("text", ""),
-            npc_id=item.get("npc_id") if isinstance(item.get("npc_id"), int) else None,
-            npc_name=item.get("npc_name") if isinstance(item.get("npc_name"), str) else None,
-            npc_avatar_url=item.get("npc_avatar_url") if isinstance(item.get("npc_avatar_url"), str) else None,
-        )
+        draft
         for item in chat_items or []
-        if isinstance(item, dict) and isinstance(item.get("kind"), str) and isinstance(item.get("text"), str)
+        if isinstance(item, dict)
+        for draft in [_draft_chat_item_from_dict(item)]
+        if draft is not None
     ]
     enriched = enrich_chat_items_with_npc_info(draft_items, [npc_row], npc_row)
     return [ChatItem.model_validate(item.model_dump()) for item in enriched]
@@ -151,15 +176,11 @@ def normalize_session_chat_items(
         校验通过的 ChatItem 列表。
     """
     draft_items = [
-        ChatItem.model_construct(
-            kind=item.get("kind"),
-            text=item.get("text", ""),
-            npc_id=item.get("npc_id") if isinstance(item.get("npc_id"), int) else None,
-            npc_name=item.get("npc_name") if isinstance(item.get("npc_name"), str) else None,
-            npc_avatar_url=item.get("npc_avatar_url") if isinstance(item.get("npc_avatar_url"), str) else None,
-        )
+        draft
         for item in chat_items
-        if isinstance(item, dict) and isinstance(item.get("kind"), str) and isinstance(item.get("text"), str)
+        if isinstance(item, dict)
+        for draft in [_draft_chat_item_from_dict(item)]
+        if draft is not None
     ]
     enriched = enrich_chat_items_with_npc_info(draft_items, peer_npc_rows, self_npc_row)
     return [ChatItem.model_validate(item.model_dump()) for item in enriched]

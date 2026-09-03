@@ -17,15 +17,17 @@ from app.services.ai_errors import (
 logger = logging.getLogger(__name__)
 
 
-def fail_from_ai_error(exc: Exception, response: Response) -> ApiResponse[None]:
+def fail_from_ai_error[T](exc: Exception, response: Response) -> ApiResponse[T]:
     """把 AI 层异常转为统一失败响应。
+
+    返回类型参数 ``T`` 由调用处期望的 ``ApiResponse[T]`` 推断。
 
     Args:
         exc: AI 服务抛出的异常。
         response: FastAPI 响应对象，用于写入 HTTP 状态码。
 
     Returns:
-        含业务错误码与提示文案的 ``ApiResponse``。
+        含业务错误码与提示文案的 ``ApiResponse[T]``。
     """
     if isinstance(exc, AiConfigurationError | AiAuthenticationError):
         return fail_response(response, ERR_BAD_REQUEST, str(exc))
