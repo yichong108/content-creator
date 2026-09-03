@@ -1,13 +1,51 @@
-import type { NpcFormPayload, NpcSummary } from "@/types/npc";
 import { request, type RequestResult } from "@/lib/request";
+import { NPC_PAGE_SIZE } from "@/types/npc";
+import type { NpcFormPayload, NpcPageResult, NpcSummary } from "@/types/npc";
+
+/**
+ * 分页获取 NPC 列表。
+ *
+ * @param page - 页码，从 1 开始
+ * @param pageSize - 每页记录数，默认 10
+ * @returns 分页 NPC 列表
+ */
+export function fetchNpcs(
+  page: number,
+  pageSize: number = NPC_PAGE_SIZE,
+): Promise<RequestResult<NpcPageResult>> {
+  return request<NpcPageResult>({
+    url: "/api/admin/npcs",
+    method: "GET",
+    params: { page, page_size: pageSize },
+  });
+}
 
 /**
  * 获取全部 NPC 列表。
  *
- * @returns NPC 摘要数组
+ * 分页后列表接口只返回单页数据；此函数逐页拉取并拼装全部记录，
+ * 供表单类下拉选择等需要完整 NPC 集合的场景使用。
+ *
+ * @returns 全部 NPC 摘要数组
  */
-export function fetchNpcs(): Promise<RequestResult<NpcSummary[]>> {
-  return request<NpcSummary[]>({ url: "/api/admin/npcs", method: "GET" });
+export async function fetchAllNpcs(): Promise<RequestResult<NpcSummary[]>> {
+  const all: NpcSummary[] = [];
+  let page = 1;
+  const pageSize = 100;
+
+  while (true) {
+    const result = await fetchNpcs(page, pageSize);
+    if (!result.ok) {
+      return result;
+    }
+    all.push(...result.data.items);
+    if (all.length >= result.data.total) {
+      break;
+    }
+    page += 1;
+  }
+
+  return { ok: true, data: all };
 }
 
 /**

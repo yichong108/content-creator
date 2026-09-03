@@ -40,9 +40,9 @@ export function LiveSessionForm({
   onSubmit,
   onCancel,
 }: LiveSessionFormProps) {
-  const npcs = useNpcStore((state) => state.npcs);
-  const listLoading = useNpcStore((state) => state.listLoading);
-  const loadNpcs = useNpcStore((state) => state.loadNpcs);
+  const allNpcs = useNpcStore((state) => state.allNpcs);
+  const allNpcsLoading = useNpcStore((state) => state.allNpcsLoading);
+  const loadAllNpcs = useNpcStore((state) => state.loadAllNpcs);
 
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [formDescription, setFormDescription] = useState(initialValues?.description ?? "");
@@ -56,8 +56,8 @@ export function LiveSessionForm({
   const generating = generatingTitle || generatingChatItems;
 
   useEffect(() => {
-    void loadNpcs();
-  }, [loadNpcs]);
+    void loadAllNpcs();
+  }, [loadAllNpcs]);
 
   const handlePeerNpcChange = (npcIds: number[]) => {
     setPeerNpcIds(npcIds);
@@ -167,8 +167,8 @@ export function LiveSessionForm({
 
       <form className="card form" onSubmit={(event) => void handleSubmit(event)}>
         <SessionNpcFields
-          npcs={npcs}
-          listLoading={listLoading}
+          npcs={allNpcs}
+          listLoading={allNpcsLoading}
           peerNpcIds={peerNpcIds}
           selfNpcId={selfNpcId}
           onPeerNpcChange={handlePeerNpcChange}

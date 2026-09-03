@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.models.npc import NpcRow
 from app.schemas.error_codes import ERR_BAD_REQUEST
 from app.schemas.npc import NpcCreate, NpcSummary, NpcUpdate
+from app.schemas.pagination import PageResult
 from app.schemas.response import ApiResponse, fail_response, success_response
 from app.services.live_session_npcs import npc_row_to_summary
 from app.services.npc_avatar import (
@@ -16,6 +17,9 @@ from app.services.npc_avatar import (
 )
 
 router = APIRouter(tags=["admin-npcs"])
+
+# 列表分页每页默认记录数
+DEFAULT_PAGE_SIZE = 10
 
 
 def _to_summary(row: NpcRow) -> NpcSummary:
@@ -51,18 +55,33 @@ async def _get_npc_row(npc_id: int, db: AsyncSession) -> NpcRow:
 
 
 @router.get("")
-async def list_npcs(db: AsyncSession = Depends(get_db)) -> ApiResponse[list[NpcSummary]]:
-    """返回全部 NPC 列表，按更新时间降序排列。
+async def list_npcs(
+    page: int = Query(default=1, ge=1, description="页码，从 1 开始"),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100, description="每页记录数"),
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[PageResult[NpcSummary]]:
+    """分页返回 NPC 列表，按更新时间降序排列。
 
     Args:
+        page: 页码，从 1 开始。
+        page_size: 每页记录数，默认 10，最大 100。
         db: 异步数据库会话。
 
     Returns:
-        统一响应包裹的 NPC 列表。
+        统一响应包裹的分页 NPC 列表，含总数。
     """
-    result = await db.execute(select(NpcRow).order_by(NpcRow.updated_at.desc()))
-    rows = result.scalars().all()
-    return success_response([_to_summary(row) for row in rows])
+    total_stmt = select(func.count()).select_from(NpcRow)
+    total = (await db.execute(total_stmt)).scalar_one()
+
+    stmt = (
+        select(NpcRow)
+        .order_by(NpcRow.updated_at.desc(), NpcRow.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    items = [_to_summary(row) for row in rows]
+    return success_response(PageResult[NpcSummary](items=items, total=total, page=page, page_size=page_size))
 
 
 @router.get("/{npc_id}")

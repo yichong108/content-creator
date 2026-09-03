@@ -3,6 +3,7 @@ import { create } from "zustand";
 import {
   createNpc as createNpcApi,
   deleteNpc as deleteNpcApi,
+  fetchAllNpcs,
   fetchNpc as fetchNpcApi,
   fetchNpcs,
   updateNpc as updateNpcApi,
@@ -10,10 +11,21 @@ import {
 } from "@/api/npcs";
 import { getRequestErrorMessage } from "@/lib/request";
 import type { NpcFormOptions, NpcFormPayload, NpcSummary } from "@/types/npc";
+import { NPC_PAGE_SIZE } from "@/types/npc";
 
 interface NpcState {
-  /** NPC 列表 */
+  /** NPC 列表（当前页） */
   npcs: NpcSummary[];
+  /** NPC 总数 */
+  total: number;
+  /** 当前页码，从 1 开始 */
+  page: number;
+  /** 每页记录数 */
+  pageSize: number;
+  /** 全部 NPC 列表（供表单下拉等场景使用） */
+  allNpcs: NpcSummary[];
+  /** 全部 NPC 加载中 */
+  allNpcsLoading: boolean;
   /** 列表加载中 */
   listLoading: boolean;
   /** 详情加载中 */
@@ -23,7 +35,9 @@ interface NpcState {
   /** 最近一次错误信息 */
   error: string | null;
   /** 拉取 NPC 列表 */
-  loadNpcs: () => Promise<void>;
+  loadNpcs: (page?: number, pageSize?: number) => Promise<void>;
+  /** 拉取全部 NPC 列表 */
+  loadAllNpcs: () => Promise<void>;
   /** 拉取指定 NPC 详情 */
   loadNpc: (npcId: number) => Promise<NpcSummary | null>;
   /** 创建 NPC */
@@ -45,19 +59,30 @@ interface NpcState {
  */
 export const useNpcStore = create<NpcState>((set, get) => ({
   npcs: [],
+  total: 0,
+  page: 1,
+  pageSize: NPC_PAGE_SIZE,
+  allNpcs: [],
+  allNpcsLoading: false,
   listLoading: false,
   detailLoading: false,
   submitting: false,
   error: null,
 
-  loadNpcs: async () => {
-    set({ listLoading: true, error: null });
-    const result = await fetchNpcs();
+  loadNpcs: async (page: number = get().page, pageSize: number = get().pageSize) => {
+    set({ listLoading: true, error: null, page, pageSize });
+    const result = await fetchNpcs(page, pageSize);
     if (result.ok) {
-      set({ npcs: result.data, listLoading: false });
+      set({ npcs: result.data.items, total: result.data.total, listLoading: false });
       return;
     }
     set({ listLoading: false, error: getRequestErrorMessage(result) });
+  },
+
+  loadAllNpcs: async () => {
+    set({ allNpcsLoading: true });
+    const result = await fetchAllNpcs();
+    set({ allNpcs: result.ok ? result.data : [], allNpcsLoading: false });
   },
 
   loadNpc: async (npcId: number) => {
@@ -124,7 +149,10 @@ export const useNpcStore = create<NpcState>((set, get) => ({
     const result = await deleteNpcApi(npcId);
     if (result.ok) {
       set({ submitting: false });
-      await get().loadNpcs();
+      const { page, pageSize, total } = get();
+      // 删除后若当前页超出新的最大页码，则回退一页，避免停留空页
+      const lastPage = Math.max(1, Math.ceil((total - 1) / pageSize));
+      await get().loadNpcs(Math.max(1, Math.min(page, lastPage)));
       return true;
     }
     set({ submitting: false, error: getRequestErrorMessage(result) });

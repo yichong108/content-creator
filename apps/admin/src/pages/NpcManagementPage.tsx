@@ -17,6 +17,9 @@ interface NpcModalState {
  */
 export function NpcManagementPage() {
   const npcs = useNpcStore((state) => state.npcs);
+  const total = useNpcStore((state) => state.total);
+  const page = useNpcStore((state) => state.page);
+  const pageSize = useNpcStore((state) => state.pageSize);
   const listLoading = useNpcStore((state) => state.listLoading);
   const detailLoading = useNpcStore((state) => state.detailLoading);
   const submitting = useNpcStore((state) => state.submitting);
@@ -105,6 +108,18 @@ export function NpcManagementPage() {
 
   const modalBusy = submitting;
 
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const handleGotoPage = useCallback(
+    (target: number) => {
+      if (listLoading || target < 1 || target > totalPages || target === page) {
+        return;
+      }
+      void loadNpcs(target, pageSize);
+    },
+    [listLoading, totalPages, page, loadNpcs, pageSize],
+  );
+
   return (
     <section className="page">
       <header className="page-header">
@@ -127,7 +142,7 @@ export function NpcManagementPage() {
       <div className="card card--flush">
         <div className="table-toolbar">
           <span className="table-toolbar-meta">
-            {listLoading ? "加载中…" : `共 ${npcs.length} 个 NPC`}
+            {listLoading ? "加载中…" : `共 ${total} 个 NPC`}
           </span>
         </div>
 
@@ -221,6 +236,30 @@ export function NpcManagementPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="table-toolbar">
+          <span className="table-toolbar-meta">
+            第 {page} / {totalPages} 页
+          </span>
+          <div className="table-actions">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={listLoading || page <= 1}
+              onClick={() => handleGotoPage(page - 1)}
+            >
+              上一页
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={listLoading || page >= totalPages}
+              onClick={() => handleGotoPage(page + 1)}
+            >
+              下一页
+            </button>
+          </div>
         </div>
       </div>
 
