@@ -1,7 +1,24 @@
-"""将 FastAPI 异常统一转换为 ``ApiResponse`` JSON 格式。
+"""将 FastAPI 异常统一转换为统一 JSON 响应格式。
 
-与前端 ``request`` 约定一致：正常 API 响应（含业务失败）均返回 HTTP 200，
-由 body 中的 ``code`` 区分成败；仅网络/网关层异常由前端 ``ok: false`` 兜底。
+成功：
+代码在路由调用 success_response() 返回，框架处理返回 HTTP 2xx
+
+失败：
+在代码里面抛出异常，比如 raise HTTPException(status_code=401, detail="Unauthorized")
+由异常处理器统一处理并返回对应 HTTP 状态码
+
+返回的 JSON 结构：
+{
+    "code": 0,
+    "message": "success",
+    "data": <T | null>
+}
+
+{
+    "code": 40401,
+    "message": "error message",
+    "data": null
+}
 """
 
 import logging
@@ -10,25 +27,10 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.schemas.error_codes import ERR_INTERNAL, ERR_VALIDATION, business_code_for_http
-from app.schemas.response import ApiResponse, fail
-
-# 与前端约定：可解析的 envelope 响应统一使用 HTTP 200
-ENVELOPE_HTTP_STATUS = 200
+from app.schemas.error_codes import ERR_BAD_REQUEST, ERR_INTERNAL, business_code_for_http
+from app.schemas.response import fail_json_response
 
 logger = logging.getLogger(__name__)
-
-
-def _envelope_json(body: ApiResponse) -> JSONResponse:
-    """将 ``ApiResponse`` 序列化为 JSON 响应。
-
-    Args:
-        body: 统一响应体。
-
-    Returns:
-        HTTP 200 的 JSON 响应。
-    """
-    return JSONResponse(status_code=ENVELOPE_HTTP_STATUS, content=body.model_dump())
 
 
 def _format_validation_error(exc: RequestValidationError) -> str:
@@ -54,10 +56,7 @@ def _format_validation_error(exc: RequestValidationError) -> str:
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    """注册全局异常处理器，保证错误响应符合 ``ApiResponse`` 规范。
-
-    业务错误与校验失败均返回 HTTP 200 + ``code != 0`` 的 envelope，
-    便于前端 ``request`` 统一解析。
+    """注册全局异常处理器。
 
     Args:
         app: FastAPI 应用实例。
@@ -67,19 +66,16 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def http_exception_handler(_request: Request, exc: HTTPException) -> JSONResponse:
         detail = exc.detail
         message = detail if isinstance(detail, str) else str(detail)
-        body = fail(code=business_code_for_http(exc.status_code), message=message)
-        return _envelope_json(body)
+        return fail_json_response(business_code_for_http(exc.status_code), message)
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
         _request: Request,
         exc: RequestValidationError,
     ) -> JSONResponse:
-        body = fail(code=ERR_VALIDATION, message=_format_validation_error(exc))
-        return _envelope_json(body)
+        return fail_json_response(ERR_BAD_REQUEST, _format_validation_error(exc))
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
         logger.exception("未处理异常: %s", exc)
-        body = fail(code=ERR_INTERNAL, message="服务器内部错误，请稍后重试")
-        return _envelope_json(body)
+        return fail_json_response(ERR_INTERNAL, "服务器内部错误，请稍后重试")

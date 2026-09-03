@@ -9,7 +9,7 @@ from app.models.live_session import LiveSessionRow
 from app.schemas.chat_item import ChatItem
 from app.schemas.live_status import LiveChatItemsAppendResponse, LiveStatusResponse
 from app.schemas.mobile_session import MobileSessionSummary
-from app.schemas.response import ApiResponse, ok
+from app.schemas.response import ApiResponse, success_response
 from app.services.chat_item_npc import normalize_session_chat_items
 from app.services.live_session_events import LIVE_WS_HEARTBEAT_SEC, live_session_event_hub
 from app.services.live_session_npcs import load_npc_summaries, resolve_session_npc_rows
@@ -167,7 +167,7 @@ async def _to_mobile_session_summary(row: LiveSessionRow, db: AsyncSession) -> M
     )
 
 
-@router.get("/mobile-sessions", response_model=ApiResponse[list[MobileSessionSummary]])
+@router.get("/mobile-sessions")
 async def list_mobile_sessions(
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[list[MobileSessionSummary]]:
@@ -179,7 +179,7 @@ async def list_mobile_sessions(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的移动端会话摘要列表。
+        统一响应包裹的移动端会话摘要列表。
     """
     result = await db.execute(select(LiveSessionRow).order_by(LiveSessionRow.updated_at.desc()))
     rows = result.scalars().all()
@@ -188,10 +188,10 @@ async def list_mobile_sessions(
         if not row.chat_items:
             continue
         summaries.append(await _to_mobile_session_summary(row, db))
-    return ok(summaries)
+    return success_response(summaries)
 
 
-@router.get("/chat-items", response_model=ApiResponse[list[ChatItem]])
+@router.get("/chat-items")
 async def list_chat_items(
     live_session_id: int | None = Query(
         default=None,
@@ -206,16 +206,16 @@ async def list_chat_items(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的 ChatItem 列表。
+        统一响应包裹的 ChatItem 列表。
 
     Raises:
         HTTPException: 直播会话不存在时返回 404。
     """
     row = await _resolve_mobile_live_session_row(db, live_session_id)
-    return ok(await _chat_items_from_live_session_row(row, db))
+    return success_response(await _chat_items_from_live_session_row(row, db))
 
 
-@router.get("/live/status", response_model=ApiResponse[LiveStatusResponse])
+@router.get("/live/status")
 async def get_live_status(
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[LiveStatusResponse]:
@@ -225,13 +225,13 @@ async def get_live_status(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的直播状态。
+        统一响应包裹的直播状态。
 
     Raises:
         HTTPException: 尚无已开启的直播会话时返回 404。
     """
     row = await _resolve_live_session_row(db, None)
-    return ok(
+    return success_response(
         LiveStatusResponse(
             live_session_id=row.id,
             title=row.title,
@@ -242,7 +242,7 @@ async def get_live_status(
     )
 
 
-@router.get("/live/chat-items", response_model=ApiResponse[LiveChatItemsAppendResponse])
+@router.get("/live/chat-items")
 async def list_live_chat_items(
     live_session_id: int | None = Query(
         default=None,
@@ -265,7 +265,7 @@ async def list_live_chat_items(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的聊天记录与总数。
+        统一响应包裹的聊天记录与总数。
 
     Raises:
         HTTPException: 直播会话不存在时返回 404。
@@ -273,12 +273,12 @@ async def list_live_chat_items(
     row = await _resolve_live_session_row(db, live_session_id)
     all_items = await _chat_items_from_live_session_row(row, db)
     if since is None:
-        return ok(_live_chat_items_response(row, all_items))
+        return success_response(_live_chat_items_response(row, all_items))
 
     if since >= len(all_items):
-        return ok(_live_chat_items_response(row, []))
+        return success_response(_live_chat_items_response(row, []))
 
-    return ok(_live_chat_items_response(row, all_items[since:]))
+    return success_response(_live_chat_items_response(row, all_items[since:]))
 
 
 async def _load_enabled_live_session() -> LiveSessionRow | None:

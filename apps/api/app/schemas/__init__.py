@@ -8,8 +8,9 @@ from app.schemas.error_codes import (
     ERR_UNAUTHORIZED,
     ERR_VALIDATION,
     business_code_for_http,
+    http_status_for_business_code,
 )
-from app.schemas.response import ApiResponse, fail, ok
+from app.schemas.response import ApiResponse, fail_response, success_response
 
 __all__ = [
     "API_SUCCESS_CODE",
@@ -22,6 +23,7 @@ __all__ = [
     "ERR_UNAUTHORIZED",
     "ERR_VALIDATION",
     "business_code_for_http",
-    "fail",
-    "ok",
+    "fail_response",
+    "http_status_for_business_code",
+    "success_response",
 ]

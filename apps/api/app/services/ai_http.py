@@ -2,8 +2,10 @@
 
 import logging
 
+from fastapi import Response
+
 from app.schemas.error_codes import ERR_BAD_REQUEST, ERR_INTERNAL
-from app.schemas.response import ApiResponse, fail
+from app.schemas.response import ApiResponse, fail_response
 from app.services.ai_errors import (
     AiAuthenticationError,
     AiConfigurationError,
@@ -15,21 +17,22 @@ from app.services.ai_errors import (
 logger = logging.getLogger(__name__)
 
 
-def fail_from_ai_error(exc: Exception) -> ApiResponse[None]:
-    """把 AI 层异常转为统一 ``ApiResponse`` 失败响应。
+def fail_from_ai_error(exc: Exception, response: Response) -> ApiResponse[None]:
+    """把 AI 层异常转为统一失败响应。
 
     Args:
         exc: AI 服务抛出的异常。
+        response: FastAPI 响应对象，用于写入 HTTP 状态码。
 
     Returns:
-        含错误码与提示文案的失败响应。
+        含业务错误码与提示文案的 ``ApiResponse``。
     """
     if isinstance(exc, AiConfigurationError | AiAuthenticationError):
-        return fail(ERR_BAD_REQUEST, str(exc))
+        return fail_response(response, ERR_BAD_REQUEST, str(exc))
     if isinstance(exc, AiConnectionError | AiUnavailableError | AiResponseError):
-        return fail(ERR_INTERNAL, str(exc))
+        return fail_response(response, ERR_INTERNAL, str(exc))
     if isinstance(exc, ValueError):
-        return fail(ERR_INTERNAL, str(exc))
+        return fail_response(response, ERR_INTERNAL, str(exc))
 
     logger.exception("未处理的 AI 异常")
-    return fail(ERR_INTERNAL, "AI 服务暂时不可用，请稍后重试")
+    return fail_response(response, ERR_INTERNAL, "AI 服务暂时不可用，请稍后重试")

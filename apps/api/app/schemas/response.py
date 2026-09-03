@@ -1,54 +1,67 @@
 """统一 API 响应规范。
 
-成功与失败均返回同一 JSON 结构::
-
-    {
-        "code": 0,
-        "message": "ok",
-        "data": <T | null>
-    }
-
-约定：
-
-- ``code == 0``：业务成功，``data`` 为业务载荷
-- ``code != 0``：业务失败，``data`` 为 ``null``；``code`` 为业务错误码（见 ``error_codes``）
-- 正常 API 响应（含业务失败）HTTP 状态码统一为 ``200``，由 body ``code`` 表达业务结果
+成功：HTTP 2xx + ``{ code: 0, message, data }``
+失败：HTTP 4xx/5xx + ``{ code: 非0, message, data: null }``
 """
 
+from fastapi import Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from app.schemas.error_codes import API_SUCCESS_CODE
+from app.schemas.error_codes import API_SUCCESS_CODE, http_status_for_business_code
 
 
 class ApiResponse[T](BaseModel):
-    """统一 API 响应体。"""
+    """统一 API 响应体。
 
-    code: int = Field(description="0 表示业务成功，非 0 为业务错误码")
-    message: str = Field(default="ok", description="人类可读的状态描述")
+    成功与失败均使用该结构；失败时 ``data`` 为 ``null``。
+    """
+
+    code: int = Field(default=API_SUCCESS_CODE, description="业务状态码；0 表示成功")
+    message: str = Field(default="", description="人类可读的状态描述")
     data: T | None = Field(default=None, description="业务数据；失败时为 null")
 
 
-def ok[T](data: T, message: str = "ok") -> ApiResponse[T]:
+def success_response[T](data: T, message: str = "success") -> ApiResponse[T]:
     """构造成功响应。
 
     Args:
-        data: 业务数据载荷。
-        message: 成功描述，默认 ``ok``。
+        data: 业务数据（Pydantic 模型、列表、字典或 ``None``）。
+        message: 人类可读描述，默认 ``success``。
 
     Returns:
-        ``code=0`` 的 ``ApiResponse``。
+        ``code=0`` 的 ``ApiResponse``，由 FastAPI 序列化为 HTTP 200 JSON。
     """
-    return ApiResponse(code=API_SUCCESS_CODE, message=message, data=data)
+    return ApiResponse[T](code=API_SUCCESS_CODE, message=message, data=data)
 
 
-def fail(code: int, message: str) -> ApiResponse[None]:
-    """构造业务失败响应（无业务数据）。
+def fail_response(response: Response, code: int, message: str) -> ApiResponse[None]:
+    """构造失败响应并设置 HTTP 状态码。
 
     Args:
-        code: 非 0 业务错误码（非 HTTP 状态码）。
-        message: 面向客户端的错误描述。
+        response: FastAPI 响应对象，用于写入 HTTP 状态码。
+        code: 业务错误码。
+        message: 人类可读错误描述。
 
     Returns:
         ``data=None`` 的 ``ApiResponse``。
     """
-    return ApiResponse(code=code, message=message, data=None)
+    response.status_code = http_status_for_business_code(code)
+    return ApiResponse[None](code=code, message=message, data=None)
+
+
+def fail_json_response(code: int, message: str) -> JSONResponse:
+    """构造失败 JSON 响应（供异常处理器使用）。
+
+    Args:
+        code: 业务错误码。
+        message: 人类可读错误描述。
+
+    Returns:
+        body 为 ``ApiResponse`` 的 ``JSONResponse``。
+    """
+    body = ApiResponse[None](code=code, message=message, data=None)
+    return JSONResponse(
+        status_code=http_status_for_business_code(code),
+        content=body.model_dump(),
+    )

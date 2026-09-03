@@ -32,6 +32,14 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="ContentCreator API", version="0.1.0", lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # 注册异常处理
 register_exception_handlers(app)
 
@@ -45,12 +53,3 @@ app.include_router(ai_config_router, prefix="/api")
 
 ensure_npc_upload_dir()
 app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")
-
-# 注册 CORS 中间件
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)

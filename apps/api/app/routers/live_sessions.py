@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +17,7 @@ from app.schemas.live_session import (
     LiveSessionSummary,
     LiveSessionUpdate,
 )
-from app.schemas.response import ApiResponse, fail, ok
+from app.schemas.response import ApiResponse, fail_response, success_response
 from app.schemas.session_title_generate import (
     GenerateSessionTitleRequest,
     GenerateSessionTitleResponse,
@@ -125,7 +125,7 @@ async def _get_live_session_row(live_session_id: int, db: AsyncSession) -> LiveS
     return row
 
 
-@router.get("", response_model=ApiResponse[list[LiveSessionSummary]])
+@router.get("")
 async def list_live_sessions(
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[list[LiveSessionSummary]]:
@@ -135,16 +135,17 @@ async def list_live_sessions(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的直播会话摘要列表。
+        统一响应包裹的直播会话摘要列表。
     """
     result = await db.execute(select(LiveSessionRow).order_by(LiveSessionRow.updated_at.desc()))
     rows = result.scalars().all()
-    return ok([_to_summary(row) for row in rows])
+    return success_response([_to_summary(row) for row in rows])
 
 
-@router.post("/generate-title", response_model=ApiResponse[GenerateSessionTitleResponse])
+@router.post("/generate-title")
 async def generate_live_session_title_endpoint(
     payload: GenerateSessionTitleRequest,
+    response: Response,
 ) -> ApiResponse[GenerateSessionTitleResponse | None]:
     """根据描述或聊天记录自动生成直播会话标题。
 
@@ -152,11 +153,11 @@ async def generate_live_session_title_endpoint(
         payload: 含可选描述与聊天记录的请求体。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的标题字符串。
+        统一响应包裹的标题字符串。
     """
     validation_error = validate_ai_config()
     if validation_error:
-        return fail_from_ai_error(AiConfigurationError(validation_error))
+        return fail_from_ai_error(AiConfigurationError(validation_error), response)
 
     description = payload.description.strip() if payload.description else None
     chat_items = payload.chat_items if payload.chat_items else None
@@ -171,14 +172,15 @@ async def generate_live_session_title_endpoint(
         AiResponseError,
         ValueError,
     ) as exc:
-        return fail_from_ai_error(exc)
+        return fail_from_ai_error(exc, response)
 
-    return ok(GenerateSessionTitleResponse(title=title))
+    return success_response(GenerateSessionTitleResponse(title=title))
 
 
-@router.post("/generate-chat-items", response_model=ApiResponse[GenerateChatItemsResponse])
+@router.post("/generate-chat-items")
 async def generate_live_session_chat_items(
     payload: GenerateChatItemsRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[GenerateChatItemsResponse | None]:
     """根据直播会话标题与关联 NPC 人设自动生成聊天记录 JSON。
@@ -188,24 +190,24 @@ async def generate_live_session_chat_items(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的聊天记录数组。
+        统一响应包裹的聊天记录数组。
     """
     validation_error = validate_ai_config()
     if validation_error:
-        return fail_from_ai_error(AiConfigurationError(validation_error))
+        return fail_from_ai_error(AiConfigurationError(validation_error), response)
 
     title = payload.title.strip()
     if not title:
-        return fail(ERR_BAD_REQUEST, "标题不能为空")
+        return fail_response(response, ERR_BAD_REQUEST, "标题不能为空")
 
     peer_npc_ids = dedupe_npc_ids(payload.peer_npc_ids)
     if not peer_npc_ids and payload.self_npc_id is None:
-        return fail(ERR_BAD_REQUEST, "请先选择对方或己方，以便按人设生成聊天记录")
+        return fail_response(response, ERR_BAD_REQUEST, "请先选择对方或己方，以便按人设生成聊天记录")
 
     try:
         peer_rows, self_row = await resolve_session_npc_rows(db, peer_npc_ids, payload.self_npc_id)
     except ValueError as exc:
-        return fail(ERR_BAD_REQUEST, str(exc))
+        return fail_response(response, ERR_BAD_REQUEST, str(exc))
 
     description = payload.description.strip() if payload.description else None
 
@@ -219,12 +221,12 @@ async def generate_live_session_chat_items(
         AiResponseError,
         ValueError,
     ) as exc:
-        return fail_from_ai_error(exc)
+        return fail_from_ai_error(exc, response)
 
-    return ok(GenerateChatItemsResponse(chat_items=items))
+    return success_response(GenerateChatItemsResponse(chat_items=items))
 
 
-@router.get("/{live_session_id}", response_model=ApiResponse[LiveSessionDetail])
+@router.get("/{live_session_id}")
 async def get_live_session(
     live_session_id: int,
     db: AsyncSession = Depends(get_db),
@@ -236,20 +238,21 @@ async def get_live_session(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的直播会话详情。
+        统一响应包裹的直播会话详情。
 
     Raises:
         HTTPException: 直播会话不存在时返回 404。
     """
     row = await _get_live_session_row(live_session_id, db)
-    return ok(await _to_detail(row, db))
+    return success_response(await _to_detail(row, db))
 
 
-@router.post("", response_model=ApiResponse[LiveSessionDetail])
+@router.post("")
 async def create_live_session(
     payload: LiveSessionCreate,
+    response: Response,
     db: AsyncSession = Depends(get_db),
-) -> ApiResponse[LiveSessionDetail]:
+) -> ApiResponse[LiveSessionDetail | None]:
     """创建新直播会话。
 
     Args:
@@ -257,7 +260,7 @@ async def create_live_session(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的新建直播会话详情。
+        统一响应包裹的新建直播会话详情。
     """
     peer_npc_ids = dedupe_npc_ids(payload.peer_npc_ids)
     try:
@@ -267,7 +270,7 @@ async def create_live_session(
             payload.self_npc_id,
         )
     except ValueError as exc:
-        return fail(ERR_BAD_REQUEST, str(exc))
+        return fail_response(response, ERR_BAD_REQUEST, str(exc))
 
     chat_items = [item.model_dump() for item in payload.chat_items]
     if not chat_items and (peer_rows or self_row is not None):
@@ -283,15 +286,16 @@ async def create_live_session(
     db.add(row)
     await db.commit()
     await db.refresh(row)
-    return ok(await _to_detail(row, db))
+    return success_response(await _to_detail(row, db))
 
 
-@router.put("/{live_session_id}", response_model=ApiResponse[LiveSessionDetail])
+@router.put("/{live_session_id}")
 async def update_live_session(
     live_session_id: int,
     payload: LiveSessionUpdate,
+    response: Response,
     db: AsyncSession = Depends(get_db),
-) -> ApiResponse[LiveSessionDetail]:
+) -> ApiResponse[LiveSessionDetail | None]:
     """更新指定直播会话。
 
     Args:
@@ -300,7 +304,7 @@ async def update_live_session(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的更新后直播会话详情。
+        统一响应包裹的更新后直播会话详情。
 
     Raises:
         HTTPException: 直播会话不存在时返回 404。
@@ -326,7 +330,7 @@ async def update_live_session(
                 row.self_npc_id,
             )
         except ValueError as exc:
-            return fail(ERR_BAD_REQUEST, str(exc))
+            return fail_response(response, ERR_BAD_REQUEST, str(exc))
 
         if payload.chat_items is not None:
             row.chat_items = [item.model_dump() for item in payload.chat_items]
@@ -337,10 +341,10 @@ async def update_live_session(
 
     await db.commit()
     await db.refresh(row)
-    return ok(await _to_detail(row, db))
+    return success_response(await _to_detail(row, db))
 
 
-@router.patch("/{live_session_id}/enabled", response_model=ApiResponse[LiveSessionSummary])
+@router.patch("/{live_session_id}/enabled")
 async def update_live_session_enabled(
     live_session_id: int,
     payload: LiveSessionEnabledUpdate,
@@ -354,7 +358,7 @@ async def update_live_session_enabled(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的更新后直播会话摘要。
+        统一响应包裹的更新后直播会话摘要。
 
     Raises:
         HTTPException: 直播会话不存在时返回 404。
@@ -379,10 +383,10 @@ async def update_live_session_enabled(
 
     await db.commit()
     await db.refresh(row)
-    return ok(_to_summary(row))
+    return success_response(_to_summary(row))
 
 
-@router.patch("/{live_session_id}/mobile-enabled", response_model=ApiResponse[LiveSessionSummary])
+@router.patch("/{live_session_id}/mobile-enabled")
 async def update_live_session_mobile_enabled(
     live_session_id: int,
     payload: LiveSessionMobileEnabledUpdate,
@@ -396,7 +400,7 @@ async def update_live_session_mobile_enabled(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的更新后直播会话摘要。
+        统一响应包裹的更新后直播会话摘要。
 
     Raises:
         HTTPException: 直播会话不存在时返回 404。
@@ -412,10 +416,10 @@ async def update_live_session_mobile_enabled(
 
     await db.commit()
     await db.refresh(row)
-    return ok(_to_summary(row))
+    return success_response(_to_summary(row))
 
 
-@router.patch("/{live_session_id}/running", response_model=ApiResponse[LiveSessionSummary])
+@router.patch("/{live_session_id}/running")
 async def update_live_session_running(
     live_session_id: int,
     payload: LiveSessionRunningUpdate,
@@ -431,7 +435,7 @@ async def update_live_session_running(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的更新后直播会话摘要。
+        统一响应包裹的更新后直播会话摘要。
 
     Raises:
         HTTPException: 直播会话不存在时返回 404。
@@ -465,10 +469,10 @@ async def update_live_session_running(
         },
     )
 
-    return ok(_to_summary(row))
+    return success_response(_to_summary(row))
 
 
-@router.delete("/{live_session_id}", response_model=ApiResponse[None])
+@router.delete("/{live_session_id}")
 async def delete_live_session(
     live_session_id: int,
     db: AsyncSession = Depends(get_db),
@@ -480,7 +484,7 @@ async def delete_live_session(
         db: 异步数据库会话。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的空数据成功响应。
+        统一响应包裹的空数据成功响应。
 
     Raises:
         HTTPException: 直播会话不存在时返回 404。
@@ -490,4 +494,4 @@ async def delete_live_session(
         row.running = False
     await db.delete(row)
     await db.commit()
-    return ok(None, message="deleted")
+    return success_response(None, message="deleted")

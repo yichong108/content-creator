@@ -1,23 +1,23 @@
 from fastapi import APIRouter
 
 from app.schemas.ai_config import AiConfig
-from app.schemas.response import ApiResponse, ok
+from app.schemas.response import ApiResponse, success_response
 from app.services.ai_config_store import load_ai_config, save_ai_config
 
 router = APIRouter(prefix="/admin/ai-config", tags=["admin-ai-config"])
 
 
-@router.get("", response_model=ApiResponse[AiConfig])
+@router.get("")
 async def get_ai_config() -> ApiResponse[AiConfig]:
     """获取当前 OpenAI 兼容 API 配置。
 
     Returns:
-        统一 ``ApiResponse`` 包裹的 AI 配置。
+        统一响应包裹的 AI 配置。
     """
-    return ok(load_ai_config())
+    return success_response(data=load_ai_config())
 
 
-@router.put("", response_model=ApiResponse[AiConfig])
+@router.put("")
 async def update_ai_config(payload: AiConfig) -> ApiResponse[AiConfig]:
     """保存 AI 配置。
 
@@ -28,4 +28,4 @@ async def update_ai_config(payload: AiConfig) -> ApiResponse[AiConfig]:
         保存后的 AI 配置。
     """
     saved = save_ai_config(payload)
-    return ok(saved)
+    return success_response(data=saved)

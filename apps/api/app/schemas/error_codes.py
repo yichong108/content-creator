@@ -42,3 +42,22 @@ def business_code_for_http(http_status: int) -> int:
         对应的业务错误码；无映射时返回 ``ERR_INTERNAL``。
     """
     return _HTTP_TO_BUSINESS.get(http_status, ERR_INTERNAL)
+
+
+def http_status_for_business_code(business_code: int) -> int:
+    """将业务错误码映射为 HTTP 状态码。
+
+    Args:
+        business_code: 业务错误码。
+
+    Returns:
+        对应的 HTTP 状态码；``API_SUCCESS_CODE`` 为 200，无映射时返回 500。
+    """
+    if business_code == API_SUCCESS_CODE:
+        return 200
+
+    for http_status, code in _HTTP_TO_BUSINESS.items():
+        if code == business_code:
+            return http_status
+
+    return 500
