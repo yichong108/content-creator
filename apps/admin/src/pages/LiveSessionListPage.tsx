@@ -110,14 +110,7 @@ export function LiveSessionListPage() {
 
   return (
     <section className="page">
-      <header className="page-header">
-        <div>
-          <h1>直播会话</h1>
-          <p className="page-desc">
-            管理用于直播演示的会话；Web /capturePage 页面展示已开启移动端的会话，/chatPage
-            页面展示已开启直播的会话
-          </p>
-        </div>
+      <header className="page-header page-header--bare">
         <div className="page-actions">
           <button
             type="button"
