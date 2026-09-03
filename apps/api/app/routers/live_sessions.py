@@ -46,7 +46,7 @@ from app.services.session_title_generator import generate_session_title
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/admin/live-sessions", tags=["admin-live-sessions"])
+router = APIRouter(tags=["admin-live-sessions"])
 
 
 def _to_summary(row: LiveSessionRow) -> LiveSessionSummary:

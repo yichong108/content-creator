@@ -43,13 +43,14 @@ app.add_middleware(
 # 注册异常处理
 register_exception_handlers(app)
 
-# 注册路由
+# 路由前缀统一声明区 — 所有模块 prefix 直接写在下方 include_router 中，
+# 各 router 文件内不再设置 prefix，避免前缀分散在两处维护。
 app.include_router(health_router)
 app.include_router(chat_items_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
-app.include_router(live_sessions_router, prefix="/api")
-app.include_router(npcs_router, prefix="/api")
-app.include_router(ai_config_router, prefix="/api")
+app.include_router(live_sessions_router, prefix="/api/admin/live-sessions")
+app.include_router(npcs_router, prefix="/api/admin/npcs")
+app.include_router(ai_config_router, prefix="/api/admin/ai-config")
 
 ensure_npc_upload_dir()
 app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")

@@ -4,7 +4,7 @@ from app.schemas.ai_config import AiConfig
 from app.schemas.response import ApiResponse, success_response
 from app.services.ai_config_store import load_ai_config, save_ai_config
 
-router = APIRouter(prefix="/admin/ai-config", tags=["admin-ai-config"])
+router = APIRouter(tags=["admin-ai-config"])
 
 
 @router.get("")

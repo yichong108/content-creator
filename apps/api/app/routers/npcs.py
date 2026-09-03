@@ -15,7 +15,7 @@ from app.services.npc_avatar import (
     save_npc_avatar_file,
 )
 
-router = APIRouter(prefix="/admin/npcs", tags=["admin-npcs"])
+router = APIRouter(tags=["admin-npcs"])
 
 
 def _to_summary(row: NpcRow) -> NpcSummary:
