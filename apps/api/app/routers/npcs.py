@@ -8,6 +8,7 @@ from app.schemas.error_codes import ERR_BAD_REQUEST
 from app.schemas.npc import NpcCreate, NpcSummary, NpcUpdate
 from app.schemas.pagination import PageResult
 from app.schemas.response import ApiResponse, fail_response, success_response
+from app.services.auth_security import get_current_admin
 from app.services.live_session_npcs import npc_row_to_summary
 from app.services.npc_avatar import (
     build_default_avatar_url,
@@ -16,7 +17,7 @@ from app.services.npc_avatar import (
     save_npc_avatar_file,
 )
 
-router = APIRouter(tags=["admin-npcs"])
+router = APIRouter(tags=["admin-npcs"], dependencies=[Depends(get_current_admin)])
 
 # 列表分页每页默认记录数
 DEFAULT_PAGE_SIZE = 10

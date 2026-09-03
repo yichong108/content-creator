@@ -122,7 +122,7 @@ export interface LiveSessionDetail {
  * @returns 业务 data 为 NpcSummary 数组
  */
 export function fetchNpcs(): Promise<RequestResult<NpcSummary[]>> {
-  return request<NpcSummary[]>({ url: "/api/admin/npcs", method: "GET" });
+  return request<NpcSummary[]>({ url: "/api/mobile/npcs", method: "GET" });
 }
 
 /**
@@ -135,7 +135,7 @@ export function createLiveSession(
   payload: CreateLiveSessionPayload,
 ): Promise<RequestResult<LiveSessionDetail>> {
   return request<LiveSessionDetail>({
-    url: "/api/admin/live-sessions",
+    url: "/api/mobile/live-sessions",
     method: "POST",
     data: payload,
   });

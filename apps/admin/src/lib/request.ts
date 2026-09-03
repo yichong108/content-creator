@@ -1,6 +1,9 @@
 import axios, { type AxiosRequestConfig, isAxiosError } from "axios";
 
+import { getAuthToken, setAuthToken } from "@/lib/auth-token";
+
 const API_SUCCESS_CODE = 0;
+const ERR_UNAUTHORIZED = 40101;
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -67,6 +70,38 @@ const client = axios.create({
 });
 
 /**
+ * 处理未授权响应：清除本地 token 并跳转登录页。
+ *
+ * 已在登录页时不重复跳转，避免登录失败时的重定向循环。
+ */
+function handleUnauthorized(): void {
+  setAuthToken(null);
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+}
+
+// 请求拦截器：自动携带已保存的访问令牌
+client.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// 响应拦截器：统一处理 HTTP 401 未授权
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (isAxiosError(error) && error.response && error.response.status === 401) {
+      handleUnauthorized();
+    }
+    return Promise.reject(error);
+  },
+);
+
+/**
  * 将失败结果转为可展示的错误文案。
  *
  * 业务错误优先使用后端 ``message``；网络类错误使用通用提示。
@@ -91,6 +126,9 @@ type RequestConfig = AxiosRequestConfig;
  * @returns 业务错误结果
  */
 function toBusinessFailure(envelope: ApiEnvelope<unknown>): RequestFailure {
+  if (envelope.code === ERR_UNAUTHORIZED) {
+    handleUnauthorized();
+  }
   return {
     ok: false,
     kind: "business",

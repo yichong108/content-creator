@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.schemas.ai_config import AiConfig
 from app.schemas.response import ApiResponse, success_response
 from app.services.ai_config_store import load_ai_config, save_ai_config
+from app.services.auth_security import get_current_admin
 
-router = APIRouter(tags=["admin-ai-config"])
+router = APIRouter(tags=["admin-ai-config"], dependencies=[Depends(get_current_admin)])
 
 
 @router.get("")

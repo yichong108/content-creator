@@ -31,6 +31,7 @@ from app.services.ai_errors import (
 )
 from app.services.ai_http import fail_from_ai_error
 from app.services.ai_provider import validate_ai_config
+from app.services.auth_security import get_current_admin
 from app.services.chat_item_npc import normalize_session_chat_items
 from app.services.chat_items_generator import generate_chat_items
 from app.services.live_session_events import live_session_event_hub
@@ -45,7 +46,7 @@ from app.services.session_title_generator import generate_session_title
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["admin-live-sessions"])
+router = APIRouter(tags=["admin-live-sessions"], dependencies=[Depends(get_current_admin)])
 
 
 def _to_summary(row: LiveSessionRow) -> LiveSessionSummary:

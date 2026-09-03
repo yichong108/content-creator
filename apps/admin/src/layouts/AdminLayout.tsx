@@ -1,9 +1,20 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+
+import { useAuthStore } from "@/stores/auth-store";
 
 /**
- * 管理后台布局，包含顶部导航与内容区。
+ * 管理后台布局，包含顶部导航、侧边栏用户信息与内容区。
  */
 export function AdminLayout() {
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div className="admin-shell">
       <aside className="sidebar">
@@ -30,6 +41,12 @@ export function AdminLayout() {
             </div>
           </div>
         </nav>
+        <div className="sidebar-footer">
+          <span className="sidebar-user">{user?.username ?? "管理员"}</span>
+          <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
+            退出登录
+          </button>
+        </div>
       </aside>
       <main className="main">
         <Outlet />

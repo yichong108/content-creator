@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://localhost:3001,http://localhost:3002"
     database_url: str = "mysql+aiomysql://wechat:wechat@127.0.0.1:3307/wechat_bot?charset=utf8mb4"
     uploads_dir: str = "uploads"
+    # JWT 签名密钥与过期时间（分钟），用于管理后台登录认证
+    jwt_secret: str = "change-me-in-prod"
+    jwt_expire_minutes: int = 60 * 24
+    # 首次启动时种子的默认管理员账号
+    admin_initial_username: str = "admin"
+    admin_initial_password: str = "admin123456"
 
     @property
     def cors_origin_list(self) -> list[str]:

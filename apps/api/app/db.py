@@ -308,6 +308,9 @@ async def init_db() -> None:
     """创建尚未存在的数据库表，并应用增量 schema 变更。"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    from app.services.auth_security import seed_default_admin
+
+    await seed_default_admin()
     await _ensure_live_session_mobile_enabled_column()
     await _ensure_live_session_running_column()
     await _ensure_live_session_source_session_id_column()
