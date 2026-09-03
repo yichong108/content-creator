@@ -4,7 +4,6 @@ import { generateLiveChatItems, generateLiveSessionTitle } from "@/api/live-sess
 import type { ChatSessionFormValues } from "@/components/chat-session-form-types";
 import { SessionNpcFields } from "@/components/SessionNpcFields";
 import { parseChatItemsJson, stringifyChatItems } from "@/lib/chat-items";
-import { mergeNpcChatItems } from "@/lib/merge-npc-chat-items";
 import { getRequestErrorMessage } from "@/lib/request";
 import { useNpcStore } from "@/stores/npc-store";
 import type { LiveSessionFormPayload } from "@/types/live-session";
@@ -60,18 +59,12 @@ export function LiveSessionForm({
     void loadNpcs();
   }, [loadNpcs]);
 
-  const syncChatItemsFromNpcs = (nextPeerNpcIds: number[], nextSelfNpcId: number | null) => {
-    setChatItemsJson(stringifyChatItems(mergeNpcChatItems(npcs, nextPeerNpcIds, nextSelfNpcId)));
-  };
-
   const handlePeerNpcChange = (npcIds: number[]) => {
     setPeerNpcIds(npcIds);
-    syncChatItemsFromNpcs(npcIds, selfNpcId);
   };
 
   const handleSelfNpcChange = (npcId: number | null) => {
     setSelfNpcId(npcId);
-    syncChatItemsFromNpcs(peerNpcIds, npcId);
   };
 
   const handleGenerateTitle = async () => {

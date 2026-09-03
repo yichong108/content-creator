@@ -136,30 +136,6 @@ def enrich_chat_items_with_npc_info(
     return enriched
 
 
-def normalize_npc_owned_chat_items(
-    chat_items: list[dict[str, Any]] | None,
-    npc_row: NpcRow,
-) -> list[ChatItem]:
-    """规范化 NPC 自身存储的聊天记录，并补全 NPC 元数据。
-
-    Args:
-        chat_items: NPC 原始聊天记录 JSON。
-        npc_row: 所属 NPC 行。
-
-    Returns:
-        校验通过的 ChatItem 列表。
-    """
-    draft_items = [
-        draft
-        for item in chat_items or []
-        if isinstance(item, dict)
-        for draft in [_draft_chat_item_from_dict(item)]
-        if draft is not None
-    ]
-    enriched = enrich_chat_items_with_npc_info(draft_items, [npc_row], npc_row)
-    return [ChatItem.model_validate(item.model_dump()) for item in enriched]
-
-
 def normalize_session_chat_items(
     chat_items: list[dict[str, Any]],
     peer_npc_rows: list[NpcRow],

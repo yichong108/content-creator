@@ -1,8 +1,6 @@
 /**
  * NPC 列表项。
  */
-import type { ChatItem } from "@/types/chat-item";
-
 export interface NpcSummary {
   id: number;
   /** NPC 名称 */
@@ -13,10 +11,6 @@ export interface NpcSummary {
   tags: string[];
   /** 头像 URL */
   avatar_url: string | null;
-  /** NPC 聊天记录 */
-  chat_items: ChatItem[];
-  /** 聊天记录条数 */
-  chat_item_count: number;
   created_at: string;
   updated_at: string;
 }

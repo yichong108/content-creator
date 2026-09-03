@@ -2,7 +2,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.schemas.chat_item import ChatItem
 from app.services.npc_avatar import normalize_avatar_url
 from app.services.npc_tags import normalize_npc_tags
 
@@ -15,8 +14,6 @@ class NpcSummary(BaseModel):
     persona_description: str = Field(description="人设描述")
     tags: list[str] = Field(default_factory=list, description="标签列表")
     avatar_url: str | None = Field(default=None, description="头像 URL")
-    chat_items: list[ChatItem] = Field(default_factory=list, description="NPC 聊天记录")
-    chat_item_count: int = Field(default=0, description="聊天记录条数")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="更新时间")
 
@@ -28,7 +25,6 @@ class NpcCreate(BaseModel):
     persona_description: str = Field(min_length=1, description="人设描述")
     tags: list[str] = Field(default_factory=list, description="标签列表")
     avatar_url: str | None = Field(default=None, description="头像 URL")
-    chat_items: list[ChatItem] = Field(default_factory=list, description="NPC 聊天记录")
 
     @field_validator("tags")
     @classmethod
@@ -50,7 +46,6 @@ class NpcUpdate(BaseModel):
     persona_description: str | None = Field(default=None, min_length=1, description="人设描述")
     tags: list[str] | None = Field(default=None, description="标签列表")
     avatar_url: str | None = Field(default=None, description="头像 URL，传空字符串可清除")
-    chat_items: list[ChatItem] | None = Field(default=None, description="NPC 聊天记录")
 
     @field_validator("tags")
     @classmethod

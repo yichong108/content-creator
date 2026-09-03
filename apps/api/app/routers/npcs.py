@@ -106,7 +106,6 @@ async def create_npc(
         persona_description=payload.persona_description.strip(),
         tags=payload.tags,
         avatar_url=avatar_url,
-        chat_items=[item.model_dump() for item in payload.chat_items],
     )
     db.add(row)
     await db.commit()
@@ -147,8 +146,6 @@ async def update_npc(
         if next_avatar_url != previous_avatar_url and is_local_npc_avatar_url(previous_avatar_url):
             delete_local_avatar_file(previous_avatar_url)
         row.avatar_url = next_avatar_url
-    if payload.chat_items is not None:
-        row.chat_items = [item.model_dump() for item in payload.chat_items]
 
     await db.commit()
     await db.refresh(row)

@@ -17,26 +17,6 @@ class NpcSeed:
     name: str
     persona_description: str
     tags: tuple[str, ...] = ()
-    chat_items: tuple[dict[str, str], ...] = ()
-
-
-DEFAULT_NPC_CHAT_ITEMS: dict[str, tuple[dict[str, str], ...]] = {
-    "豆包": (
-        {"kind": "timestamp", "text": "周二 下午2:18"},
-        {"kind": "incoming", "text": "DeepSeek 你在吗"},
-        {"kind": "incoming", "text": "有个问题想问你"},
-    ),
-    "DeepSeek": (
-        {"kind": "timestamp", "text": "周三 晚上9:41"},
-        {"kind": "outgoing", "text": "在，咋了"},
-        {"kind": "outgoing", "text": "别又是让我帮你写周报"},
-    ),
-    "我": (
-        {"kind": "timestamp", "text": "今天 上午10:02"},
-        {"kind": "outgoing", "text": "在吗"},
-        {"kind": "outgoing", "text": "有个事想问你"},
-    ),
-}
 
 
 DEFAULT_NPC_SEEDS: tuple[NpcSeed, ...] = (
@@ -46,7 +26,6 @@ DEFAULT_NPC_SEEDS: tuple[NpcSeed, ...] = (
             "字节跳动 AI 助手，语气活泼亲切，善于倾听与陪伴，回复自然口语化，偶尔带点小幽默，适合日常闲聊与情感交流。"
         ),
         tags=("AI", "助手"),
-        chat_items=DEFAULT_NPC_CHAT_ITEMS["豆包"],
     ),
     NpcSeed(
         name="DeepSeek",
@@ -54,7 +33,6 @@ DEFAULT_NPC_SEEDS: tuple[NpcSeed, ...] = (
             "理性克制的技术型对话伙伴，逻辑清晰、表达简洁，擅长分析推理与结构化回答，偏工程师思维，少废话多干货。"
         ),
         tags=("AI", "助手"),
-        chat_items=DEFAULT_NPC_CHAT_ITEMS["DeepSeek"],
     ),
     NpcSeed(
         name="我",
@@ -62,7 +40,6 @@ DEFAULT_NPC_SEEDS: tuple[NpcSeed, ...] = (
             "代表聊天中己方视角的普通用户，语气自然口语化，回复简短真实，像日常微信里和朋友说话一样。"
         ),
         tags=("我是NPC",),
-        chat_items=DEFAULT_NPC_CHAT_ITEMS["我"],
     ),
     NpcSeed(
         name="ChatGPT",
@@ -218,7 +195,6 @@ async def seed_default_npcs() -> None:
                         persona_description=seed.persona_description,
                         tags=list(seed.tags),
                         avatar_url=build_default_avatar_url(seed.name),
-                        chat_items=list(seed.chat_items),
                     )
                 )
                 changed = True
@@ -230,10 +206,6 @@ async def seed_default_npcs() -> None:
 
             if not row.avatar_url:
                 row.avatar_url = build_default_avatar_url(seed.name)
-                changed = True
-
-            if not (row.chat_items or []) and seed.chat_items:
-                row.chat_items = list(seed.chat_items)
                 changed = True
 
         if changed:

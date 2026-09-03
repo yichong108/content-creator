@@ -10,8 +10,6 @@ export interface NpcSummary {
   tags: string[];
   /** 头像 URL */
   avatar_url: string | null;
-  /** 聊天记录条数 */
-  chat_item_count: number;
   created_at: string;
   updated_at: string;
 }

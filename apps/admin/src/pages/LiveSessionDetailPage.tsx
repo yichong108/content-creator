@@ -160,7 +160,6 @@ export function LiveSessionDetailPage() {
                   <div key={npc.id} className="npc-picker-item npc-picker-item--locked">
                     <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={32} />
                     <span className="npc-picker-name">对方：{npc.name}</span>
-                    <span className="npc-picker-meta">{npc.chat_item_count} 条对话</span>
                   </div>
                 ))}
                 {currentLiveSession.self_npc ? (
@@ -172,9 +171,6 @@ export function LiveSessionDetailPage() {
                     />
                     <span className="npc-picker-name">
                       己方：{currentLiveSession.self_npc.name}
-                    </span>
-                    <span className="npc-picker-meta">
-                      {currentLiveSession.self_npc.chat_item_count} 条对话
                     </span>
                   </div>
                 ) : null}

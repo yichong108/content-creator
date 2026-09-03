@@ -61,7 +61,6 @@ function NpcSingleSelect({
           />
           <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={32} />
           <span className="npc-picker-name">{npc.name}</span>
-          <span className="npc-picker-meta">{npc.chat_item_count} 条对话</span>
         </label>
       ))}
     </div>
@@ -107,7 +106,6 @@ function NpcMultiSelect({
             />
             <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={32} />
             <span className="npc-picker-name">{npc.name}</span>
-            <span className="npc-picker-meta">{npc.chat_item_count} 条对话</span>
           </label>
         );
       })}
@@ -131,7 +129,7 @@ export function SessionNpcFields({
     <>
       <div className="form-field">
         <span className="form-label">对方</span>
-        <span className="form-hint">可多选；选中后按顺序合并各 NPC 的 incoming 侧对话</span>
+        <span className="form-hint">可多选对方 NPC</span>
         {listLoading && npcs.length === 0 ? (
           <p className="muted">加载 NPC 列表…</p>
         ) : (
@@ -146,7 +144,7 @@ export function SessionNpcFields({
 
       <div className="form-field">
         <span className="form-label">己方</span>
-        <span className="form-hint">可选；选中后将其 outgoing 侧对话合并到聊天记录</span>
+        <span className="form-hint">可选己方 NPC</span>
         {listLoading && npcs.length === 0 ? (
           <p className="muted">加载 NPC 列表…</p>
         ) : (

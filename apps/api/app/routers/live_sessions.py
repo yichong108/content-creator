@@ -38,7 +38,6 @@ from app.services.live_session_npcs import (
     dedupe_npc_ids,
     load_npc_summaries,
     load_npc_summary,
-    merge_session_npc_chat_items,
     resolve_session_npc_rows,
 )
 from app.services.live_session_runner import live_session_runner
@@ -273,8 +272,6 @@ async def create_live_session(
         return fail_response(response, ERR_BAD_REQUEST, str(exc))
 
     chat_items = [item.model_dump() for item in payload.chat_items]
-    if not chat_items and (peer_rows or self_row is not None):
-        chat_items = merge_session_npc_chat_items(peer_rows, self_row)
 
     row = LiveSessionRow(
         title=payload.title,
@@ -334,8 +331,6 @@ async def update_live_session(
 
         if payload.chat_items is not None:
             row.chat_items = [item.model_dump() for item in payload.chat_items]
-        else:
-            row.chat_items = merge_session_npc_chat_items(peer_rows, self_row)
     elif payload.chat_items is not None:
         row.chat_items = [item.model_dump() for item in payload.chat_items]
 

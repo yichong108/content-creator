@@ -304,24 +304,6 @@ async def _ensure_live_session_npc_role_columns() -> None:
             )
 
 
-async def _ensure_npc_chat_items_column() -> None:
-    """为已有 deployments 补齐 npcs.chat_items 列。"""
-    async with engine.begin() as conn:
-        result = await conn.execute(
-            text(
-                """
-                SELECT COUNT(*)
-                FROM information_schema.COLUMNS
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME = 'npcs'
-                  AND COLUMN_NAME = 'chat_items'
-                """
-            )
-        )
-        if result.scalar_one() == 0:
-            await conn.execute(text("ALTER TABLE npcs ADD COLUMN chat_items JSON NOT NULL DEFAULT (JSON_ARRAY())"))
-
-
 async def init_db() -> None:
     """创建尚未存在的数据库表，并应用增量 schema 变更。"""
     async with engine.begin() as conn:
@@ -331,7 +313,6 @@ async def init_db() -> None:
     await _ensure_live_session_source_session_id_column()
     await _ensure_npc_tags_column()
     await _ensure_npc_avatar_url_column()
-    await _ensure_npc_chat_items_column()
     await _ensure_live_session_npc_ids_column()
     await _ensure_session_npc_role_columns()
     await _ensure_live_session_npc_role_columns()
