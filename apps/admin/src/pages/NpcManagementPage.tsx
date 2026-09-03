@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { Button, Table } from "antd";
+import type { ColumnsType } from "antd/es/table";
+
 import { NpcAvatar } from "@/components/NpcAvatar";
 import { NpcModal } from "@/components/NpcModal";
 import { NpcTagList } from "@/components/NpcTagList";
@@ -13,7 +16,7 @@ interface NpcModalState {
 }
 
 /**
- * NPC 管理页面，以表格展示 NPC 列表及增删改查操作。
+ * NPC 管理页面，使用 antd Table 展示 NPC 列表及增删改查操作。
  */
 export function NpcManagementPage() {
   const npcs = useNpcStore((state) => state.npcs);
@@ -120,13 +123,76 @@ export function NpcManagementPage() {
     [listLoading, totalPages, page, loadNpcs, pageSize],
   );
 
+  const columns: ColumnsType<NpcSummary> = [
+    {
+      title: "头像",
+      dataIndex: "avatar_url",
+      key: "avatar",
+      width: 80,
+      align: "center",
+      render: (_, npc) => <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={36} />,
+    },
+    {
+      title: "NPC名称",
+      dataIndex: "name",
+      key: "name",
+      width: 180,
+      render: (name: string) => <span className="cell-title">{name}</span>,
+    },
+    {
+      title: "标签",
+      dataIndex: "tags",
+      key: "tags",
+      render: (tags: string[]) => <NpcTagList tags={tags ?? []} />,
+    },
+    {
+      title: "人设描述",
+      dataIndex: "persona_description",
+      key: "persona_description",
+      ellipsis: true,
+      render: (description: string) => (
+        <span className="cell-desc" title={description}>
+          {description}
+        </span>
+      ),
+    },
+    {
+      title: "创建时间",
+      dataIndex: "created_at",
+      key: "created_at",
+      width: 180,
+      render: (value: string) => <span className="col-date">{formatDateTime(value)}</span>,
+    },
+    {
+      title: "更新时间",
+      dataIndex: "updated_at",
+      key: "updated_at",
+      width: 180,
+      render: (value: string) => <span className="col-date">{formatDateTime(value)}</span>,
+    },
+    {
+      title: "操作",
+      key: "actions",
+      width: 220,
+      render: (_, npc) => (
+        <div className="table-actions">
+          <Button size="small" disabled={submitting} onClick={() => void handleView(npc)}>
+            查看
+          </Button>
+          <Button size="small" disabled={submitting} onClick={() => handleEdit(npc)}>
+            编辑
+          </Button>
+          <Button size="small" danger disabled={submitting} onClick={() => void handleDelete(npc)}>
+            删除
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <section className="page">
-      <header className="page-header">
-        <div>
-          <h1>NPC管理</h1>
-          <p className="page-desc">管理对话 NPC 角色与相关配置</p>
-        </div>
+      <header className="page-header page-header--bare">
         <div className="page-actions">
           <button type="button" className="btn btn-secondary" onClick={() => void loadNpcs()}>
             刷新
@@ -140,127 +206,30 @@ export function NpcManagementPage() {
       {error && modalState == null ? <div className="alert alert-error">{error}</div> : null}
 
       <div className="card card--flush">
-        <div className="table-toolbar">
-          <span className="table-toolbar-meta">
-            {listLoading ? "加载中…" : `共 ${total} 个 NPC`}
-          </span>
-        </div>
-
-        <div className="table-wrap">
-          <table className="data-table">
-            <colgroup>
-              <col className="col-avatar" />
-              <col className="col-title" />
-              <col className="col-tags" />
-              <col className="col-desc" />
-              <col className="col-date" />
-              <col className="col-date" />
-              <col className="col-actions" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th scope="col">头像</th>
-                <th scope="col">NPC名称</th>
-                <th scope="col">标签</th>
-                <th scope="col">人设描述</th>
-                <th scope="col">创建时间</th>
-                <th scope="col">更新时间</th>
-                <th scope="col">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {listLoading ? (
-                <tr>
-                  <td className="table-state" colSpan={7}>
-                    正在加载 NPC 列表…
-                  </td>
-                </tr>
-              ) : npcs.length === 0 ? (
-                <tr>
-                  <td className="table-state" colSpan={7}>
-                    <div className="empty-state empty-state--table">
-                      <p className="muted">暂无 NPC</p>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={handleOpenCreate}
-                      >
-                        创建第一个 NPC
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                npcs.map((npc) => (
-                  <tr key={npc.id}>
-                    <td className="col-avatar">
-                      <NpcAvatar name={npc.name} avatarUrl={npc.avatar_url} size={36} />
-                    </td>
-                    <td className="cell-title">{npc.name}</td>
-                    <td className="cell-tags">
-                      <NpcTagList tags={npc.tags ?? []} />
-                    </td>
-                    <td className="cell-desc">{npc.persona_description}</td>
-                    <td className="col-date">{formatDateTime(npc.created_at)}</td>
-                    <td className="col-date">{formatDateTime(npc.updated_at)}</td>
-                    <td className="col-actions">
-                      <div className="table-actions">
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          disabled={submitting}
-                          onClick={() => void handleView(npc)}
-                        >
-                          查看
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          disabled={submitting}
-                          onClick={() => handleEdit(npc)}
-                        >
-                          编辑
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          disabled={submitting}
-                          onClick={() => void handleDelete(npc)}
-                        >
-                          删除
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="table-toolbar">
-          <span className="table-toolbar-meta">
-            第 {page} / {totalPages} 页
-          </span>
-          <div className="table-actions">
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              disabled={listLoading || page <= 1}
-              onClick={() => handleGotoPage(page - 1)}
-            >
-              上一页
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              disabled={listLoading || page >= totalPages}
-              onClick={() => handleGotoPage(page + 1)}
-            >
-              下一页
-            </button>
-          </div>
-        </div>
+        <Table<NpcSummary>
+          rowKey="id"
+          columns={columns}
+          dataSource={npcs}
+          loading={listLoading}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: false,
+            showTotal: (totalCount) => `共 ${totalCount} 个 NPC`,
+            onChange: handleGotoPage,
+          }}
+          locale={{
+            emptyText: (
+              <div className="empty-state empty-state--table">
+                <p className="muted">暂无 NPC</p>
+                <Button type="primary" onClick={handleOpenCreate}>
+                  创建第一个 NPC
+                </Button>
+              </div>
+            ),
+          }}
+        />
       </div>
 
       <NpcModal

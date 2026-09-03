@@ -150,6 +150,11 @@ a {
   font-size: 28px;
 }
 
+/* 仅包含操作按钮的页头，将操作对齐到右侧 */
+.page-header--bare {
+  justify-content: flex-end;
+}
+
 .page-desc {
   margin: 0;
   color: var(--text-muted);
