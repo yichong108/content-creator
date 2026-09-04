@@ -15,7 +15,8 @@ dependencies = [
     "pyjwt>=2.10,<3.0",
     "bcrypt>=4.2,<5.0",
     "python-multipart>=0.0.20,<1.0",
-    "pi-agent[openai]>=0.1.0",
+    "langchain>=1.0.0,<2.0",
+    "langchain-openai>=0.3.0,<1.0",
 ]
 
 [dependency-groups]
