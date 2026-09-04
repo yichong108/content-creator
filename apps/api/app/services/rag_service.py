@@ -18,6 +18,8 @@ from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from pypdf import PdfReader
 
+# 必须先于 huggingface_hub（由 fastembed 间接导入）加载 settings，
+# config 模块在被导入时会写入 HF_ENDPOINT 镜像端点，确保模型从镜像下载而非超时的官方域名。
 from app.config import settings
 
 RAG_COLLECTION_NAME = "documents"
@@ -70,12 +72,12 @@ class RagService:
             collection = client.get_or_create_collection(RAG_COLLECTION_NAME)
             vector_store = ChromaVectorStore(chroma_collection=collection)
 
-            self._storage_context = StorageContext.from_defaults(
-                vector_store=vector_store,
-                persist_dir=str(settings.rag_storage_path),
-            )
-
             if (settings.rag_storage_path / "docstore.json").is_file():
+                # 已有持久化索引 → 从磁盘加载 docstore/index_store，再挂载现有向量库
+                self._storage_context = StorageContext.from_defaults(
+                    vector_store=vector_store,
+                    persist_dir=str(settings.rag_storage_path),
+                )
                 self._index = cast(
                     VectorStoreIndex,
                     load_index_from_storage(
@@ -84,6 +86,10 @@ class RagService:
                     ),
                 )
             else:
+                # 尚无索引 → 使用内存存储上下文，首次写入后再通过 persist 落盘生成 docstore.json
+                self._storage_context = StorageContext.from_defaults(
+                    vector_store=vector_store,
+                )
                 self._index = None
 
             return self._index

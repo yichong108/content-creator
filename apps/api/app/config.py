@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -28,6 +29,8 @@ class Settings(BaseSettings):
     admin_initial_password: str = "admin123456"
     # RAG 嵌入模型（fastembed 离线本地模型，默认 BGE 中文小模型）
     rag_embedding_model: str = "BAAI/bge-small-zh-v1.5"
+    # HuggingFace 下载端点镜像；国内访问 huggingface.co 常超时，默认走 hf-mirror
+    hf_endpoint: str = "https://hf-mirror.com"
     # RAG 向量索引落盘子目录（相对 apps/api，Chroma 数据与 LlamaIndex docstore）
     rag_storage_dir: str = "data/rag"
 
@@ -47,3 +50,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# 在 huggingface_hub 首次导入前写入镜像端点（其会在模块导入时读取 HF_ENDPOINT 一次），
+# 使 FastEmbed 等依赖 huggingface_hub 的组件走国内镜像下载模型，避免连接超时。
+if settings.hf_endpoint:
+    os.environ.setdefault("HF_ENDPOINT", settings.hf_endpoint)
