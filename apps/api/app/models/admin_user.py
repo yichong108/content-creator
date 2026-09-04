@@ -1,12 +1,11 @@
-from datetime import datetime
-
-from sqlalchemy import BigInteger, Boolean, DateTime, String, func
+from sqlalchemy import BigInteger, Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+from app.models.mixins import TimestampMixin
 
 
-class AdminUserRow(Base):
+class AdminUserRow(TimestampMixin, Base):
     """后台管理员账号行，用于登录认证。"""
 
     __tablename__ = "admin_users"
@@ -15,14 +14,3 @@ class AdminUserRow(Base):
     username: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        nullable=False,
-        server_default=func.now(),
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )

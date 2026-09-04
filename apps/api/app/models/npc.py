@@ -1,12 +1,11 @@
-from datetime import datetime
-
-from sqlalchemy import JSON, BigInteger, DateTime, String, Text, func
+from sqlalchemy import JSON, BigInteger, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+from app.models.mixins import TimestampMixin
 
 
-class NpcRow(Base):
+class NpcRow(TimestampMixin, Base):
     """对话 NPC 角色行。"""
 
     __tablename__ = "npcs"
@@ -16,14 +15,3 @@ class NpcRow(Base):
     persona_description: Mapped[str] = mapped_column(Text, nullable=False)
     tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        nullable=False,
-        server_default=func.now(),
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )

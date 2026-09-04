@@ -1,12 +1,11 @@
-from datetime import datetime
-
-from sqlalchemy import JSON, BigInteger, Boolean, DateTime, String, Text, func
+from sqlalchemy import JSON, BigInteger, Boolean, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+from app.models.mixins import TimestampMixin
 
 
-class LiveSessionRow(Base):
+class LiveSessionRow(TimestampMixin, Base):
     """直播会话行，聊天记录以 JSON 数组存储在 chat_items 字段中。"""
 
     __tablename__ = "live_sessions"
@@ -36,14 +35,3 @@ class LiveSessionRow(Base):
         server_default="0",
     )
     source_session_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        nullable=False,
-        server_default=func.now(),
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
