@@ -130,14 +130,13 @@ export function updateLiveSessionRunning(
 }
 
 /**
- * 根据描述或聊天记录自动生成直播会话标题。
+ * 根据可选描述自动生成直播会话标题；未提供描述时随机生成。
  *
- * @param payload - 可选描述与聊天记录，用于提炼标题
+ * @param payload - 可选描述
  * @returns 生成的直播会话标题
  */
 export function generateLiveSessionTitle(payload: {
   description?: string | null;
-  chat_items?: ChatItem[];
 }): Promise<RequestResult<{ title: string }>> {
   return request<{ title: string }>({
     url: "/api/admin/live-sessions/generate-title",

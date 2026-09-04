@@ -70,15 +70,27 @@ export function LiveSessionForm({
   const handleGenerateTitle = async () => {
     setFieldError(null);
 
-    const parsed = parseChatItemsJson(chatItemsJson);
-    const chatItems = parsed.ok && parsed.data.length > 0 ? parsed.data : undefined;
-
     setGeneratingTitle(true);
 
-    const trimmedDescription = formDescription.trim();
+    const parts: string[] = [];
+
+    if (peerNpcIds.length > 0) {
+      const peerDescriptions = allNpcs
+        .filter((npc) => peerNpcIds.includes(npc.id))
+        .map((npc) => `${npc.name}的人设：${npc.persona_description}`)
+        .filter((text) => text.length > 0);
+      if (peerDescriptions.length > 0) parts.push(`对方：${peerDescriptions.join("；")}`);
+    }
+
+    if (selfNpcId != null) {
+      const selfNpc = allNpcs.find((npc) => npc.id === selfNpcId);
+      if (selfNpc && selfNpc.persona_description.length > 0) {
+        parts.push(`己方：${selfNpc.name}的人设：${selfNpc.persona_description}`);
+      }
+    }
+
     const result = await generateLiveSessionTitle({
-      description: trimmedDescription.length > 0 ? trimmedDescription : null,
-      chat_items: chatItems,
+      description: parts.length > 0 ? parts.join("\n") : null,
     });
 
     setGeneratingTitle(false);
@@ -188,9 +200,7 @@ export function LiveSessionForm({
               {generatingTitle ? "生成中…" : "自动生成"}
             </button>
           </div>
-          <span className="form-hint">
-            可根据描述或聊天记录自动生成；无参考信息时将随机生成场景标题
-          </span>
+          <span className="form-hint">根据所选 NPC 人设自动生成；未选 NPC 时随机生成场景标题</span>
           <input
             className="form-input"
             value={title}

@@ -147,10 +147,10 @@ async def generate_live_session_title_endpoint(
     payload: GenerateSessionTitleRequest,
     response: Response,
 ) -> ApiResponse[GenerateSessionTitleResponse | None]:
-    """根据描述或聊天记录自动生成直播会话标题。
+    """根据可选描述自动生成直播会话标题；未提供描述时随机生成。
 
     Args:
-        payload: 含可选描述与聊天记录的请求体。
+        payload: 含可选描述的请求体。
 
     Returns:
         统一响应包裹的标题字符串。
@@ -160,10 +160,9 @@ async def generate_live_session_title_endpoint(
         return fail_from_ai_error(AiConfigurationError(validation_error), response)
 
     description = payload.description.strip() if payload.description else None
-    chat_items = payload.chat_items if payload.chat_items else None
 
     try:
-        title = await generate_session_title(description, chat_items)
+        title = await generate_session_title(description)
     except (
         AiConfigurationError,
         AiAuthenticationError,
