@@ -44,6 +44,9 @@ export function AdminLayout() {
               <NavLink className="nav-link nav-sublink" to="/system/models">
                 AI配置
               </NavLink>
+              <NavLink className="nav-link nav-sublink" to="/system/token-usage">
+                token用量
+              </NavLink>
             </div>
           </div>
         </nav>

@@ -15,3 +15,5 @@ class AiConfig(BaseModel):
     """OpenAI 兼容 API 配置。"""
 
     openai: OpenAiConfig = Field(default_factory=OpenAiConfig)
+    # token 总量额度上限，用于「token 用量」页面计算消耗占比
+    token_quota: int = Field(default=1_000_000, ge=1, description="token 总量额度")

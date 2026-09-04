@@ -23,6 +23,7 @@ from app.routers.live_sessions import router as live_sessions_router
 from app.routers.mobile import router as mobile_router
 from app.routers.npcs import router as npcs_router
 from app.routers.rag import router as rag_router
+from app.routers.token_usage import router as token_usage_router
 from app.services.document_storage import ensure_document_upload_dir
 from app.services.live_session_runner import live_session_runner
 from app.services.npc_avatar import ensure_npc_upload_dir
@@ -61,6 +62,7 @@ app.include_router(auth_router, prefix="/api/admin/auth")
 app.include_router(live_sessions_router, prefix="/api/admin/live-sessions")
 app.include_router(npcs_router, prefix="/api/admin/npcs")
 app.include_router(ai_config_router, prefix="/api/admin/ai-config")
+app.include_router(token_usage_router, prefix="/api/admin/token-usage")
 app.include_router(documents_router, prefix="/api/admin/documents")
 app.include_router(rag_router, prefix="/api/admin/rag")
 

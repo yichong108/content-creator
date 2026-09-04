@@ -22,6 +22,7 @@ from app.services.ai_errors import (
     AiResponseError,
     AiUnavailableError,
 )
+from app.services.token_usage_store import add_used_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +168,30 @@ def _extract_agent_text(messages: list[BaseMessage]) -> str:
     return ""
 
 
+def _sum_usage_tokens(result: dict[str, Any]) -> int:
+    """对一次 agent 调用返回消息中的 token 用量求和。
+
+    agent 可能进行多次内部 LLM 调用，每条助手消息都会携带 ``usage_metadata``。
+    兼容 dict 与 UsageMetadata 两种结构，取 ``total_tokens`` 累加。
+
+    Args:
+        result: ``agent.invoke`` 返回的字典（含 ``messages`` 键）。
+
+    Returns:
+        本次调用的总 token 消耗；无法解析时为 ``0``。
+    """
+    total = 0
+    for msg in result.get("messages", []):
+        usage = getattr(msg, "usage_metadata", None)
+        if not usage:
+            continue
+        if isinstance(usage, dict):
+            total += max(0, int(usage.get("total_tokens") or 0))
+        else:
+            total += max(0, int(getattr(usage, "total_tokens", 0) or 0))
+    return total
+
+
 def invoke_chat(messages: list[dict[str, str]]) -> str:
     """通过 LangChain agent 执行多轮聊天补全。
 
@@ -210,6 +235,7 @@ def invoke_chat(messages: list[dict[str, str]]) -> str:
     except openai.OpenAIError as exc:
         raise _map_openai_error(exc) from exc
 
+    add_used_tokens(_sum_usage_tokens(result))
     content = _extract_agent_text(result.get("messages", []))
     if not content:
         raise AiResponseError("AI 未返回有效内容")
@@ -259,6 +285,7 @@ def invoke_structured_output[T: BaseModel](
     except openai.OpenAIError as exc:
         raise _map_openai_error(exc) from exc
 
+    add_used_tokens(_sum_usage_tokens(result))
     structured = result.get("structured_response")
     if isinstance(structured, output_type):
         return structured

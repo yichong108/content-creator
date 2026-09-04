@@ -70,6 +70,7 @@ function OpenAiConfigFields({ value, onChange, disabled = false }: OpenAiConfigF
  */
 export function ModelConfigPage() {
   const [openaiConfig, setOpenaiConfig] = useState(EMPTY_AI_CONFIG.openai);
+  const [tokenQuota, setTokenQuota] = useState(EMPTY_AI_CONFIG.token_quota);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +96,7 @@ export function ModelConfigPage() {
       }
 
       setOpenaiConfig(result.data.openai);
+      setTokenQuota(result.data.token_quota);
     };
 
     void load();
@@ -112,6 +114,7 @@ export function ModelConfigPage() {
 
     const payload: AiConfig = {
       openai: openaiConfig,
+      token_quota: tokenQuota,
     };
 
     const result = await saveAiConfig(payload);
@@ -123,6 +126,7 @@ export function ModelConfigPage() {
     }
 
     setOpenaiConfig(result.data.openai);
+    setTokenQuota(result.data.token_quota);
     setSuccessMessage("配置已保存");
   };
 
@@ -148,6 +152,24 @@ export function ModelConfigPage() {
             onChange={setOpenaiConfig}
             disabled={formDisabled}
           />
+        </div>
+
+        <div className="card config-panel">
+          <h2 className="section-title">token 额度</h2>
+          <label className="form-field">
+            <span className="form-label">总量额度</span>
+            <span className="form-hint">
+              用于「token 用量」页面计算消耗占比，DeepSeek 官方 API 不提供该值
+            </span>
+            <input
+              className="form-input"
+              type="number"
+              min={1}
+              value={tokenQuota}
+              onChange={(event) => setTokenQuota(Number(event.target.value))}
+              disabled={formDisabled}
+            />
+          </label>
         </div>
 
         <div className="form-actions form-actions--page-footer">

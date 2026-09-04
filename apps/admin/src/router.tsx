@@ -11,6 +11,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { ModelConfigPage } from "@/pages/ModelConfigPage";
 import { NpcManagementPage } from "@/pages/NpcManagementPage";
 import { RagTestPage } from "@/pages/RagTestPage";
+import { TokenUsagePage } from "@/pages/TokenUsagePage";
 import { TopicManagementPage } from "@/pages/TopicManagementPage";
 
 /**
@@ -43,6 +44,7 @@ export function AppRouter() {
             <Route path="sessions/:id" element={<RedirectLegacySessionRoute />} />
             <Route path="sessions" element={<Navigate replace to="/" />} />
             <Route path="system/models" element={<ModelConfigPage />} />
+            <Route path="system/token-usage" element={<TokenUsagePage />} />
             <Route path="npcs" element={<NpcManagementPage />} />
             <Route path="topics" element={<TopicManagementPage />} />
             <Route path="documents" element={<DocumentManagementPage />} />
