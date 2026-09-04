@@ -250,7 +250,6 @@ async def init_db() -> None:
     await seed_default_admin()
     await _ensure_live_session_mobile_enabled_column()
     await _ensure_live_session_running_column()
-    await _ensure_live_session_source_session_id_column()
     await _ensure_npc_tags_column()
     await _ensure_npc_avatar_url_column()
     await _ensure_live_session_npc_ids_column()
