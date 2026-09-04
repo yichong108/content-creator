@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     # 首次启动时种子的默认管理员账号
     admin_initial_username: str = "admin"
     admin_initial_password: str = "admin123456"
+    # RAG 嵌入模型（fastembed 离线本地模型，默认 BGE 中文小模型）
+    rag_embedding_model: str = "BAAI/bge-small-zh-v1.5"
+    # RAG 向量索引落盘子目录（相对 apps/api，Chroma 数据与 LlamaIndex docstore）
+    rag_storage_dir: str = "data/rag"
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -35,6 +39,11 @@ class Settings(BaseSettings):
     def uploads_path(self) -> Path:
         """上传文件根目录（相对 apps/api）。"""
         return _API_ROOT / self.uploads_dir
+
+    @property
+    def rag_storage_path(self) -> Path:
+        """RAG 向量索引持久化目录（相对 apps/api）。"""
+        return _API_ROOT / self.rag_storage_dir
 
 
 settings = Settings()

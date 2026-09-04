@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-
 
 import { RequireAuth } from "@/components/RequireAuth";
 import { AdminLayout } from "@/layouts/AdminLayout";
+import { DocumentManagementPage } from "@/pages/DocumentManagementPage";
 import { LiveSessionCreatePage } from "@/pages/LiveSessionCreatePage";
 import { LiveSessionDetailPage } from "@/pages/LiveSessionDetailPage";
 import { LiveSessionEditPage } from "@/pages/LiveSessionEditPage";
@@ -9,6 +10,7 @@ import { LiveSessionListPage } from "@/pages/LiveSessionListPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { ModelConfigPage } from "@/pages/ModelConfigPage";
 import { NpcManagementPage } from "@/pages/NpcManagementPage";
+import { RagTestPage } from "@/pages/RagTestPage";
 import { TopicManagementPage } from "@/pages/TopicManagementPage";
 
 /**
@@ -43,6 +45,8 @@ export function AppRouter() {
             <Route path="system/models" element={<ModelConfigPage />} />
             <Route path="npcs" element={<NpcManagementPage />} />
             <Route path="topics" element={<TopicManagementPage />} />
+            <Route path="documents" element={<DocumentManagementPage />} />
+            <Route path="rag-test" element={<RagTestPage />} />
             <Route path="*" element={<Navigate replace to="/" />} />
           </Route>
         </Route>

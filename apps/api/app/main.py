@@ -9,6 +9,7 @@ from app.config import settings
 from app.db import init_db
 from app.http import register_exception_handlers
 from app.models import admin_user as _admin_user_model  # noqa: F401
+from app.models import document as _document_model  # noqa: F401
 from app.models import live_session as _live_session_model  # noqa: F401
 from app.models import npc as _npc_model  # noqa: F401
 from app.models import session as _session_model  # noqa: F401 — 迁移前仍需 sessions 表
@@ -16,10 +17,13 @@ from app.routers.ai_config import router as ai_config_router
 from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router
 from app.routers.chat_items import router as chat_items_router
+from app.routers.documents import router as documents_router
 from app.routers.health import router as health_router
 from app.routers.live_sessions import router as live_sessions_router
 from app.routers.mobile import router as mobile_router
 from app.routers.npcs import router as npcs_router
+from app.routers.rag import router as rag_router
+from app.services.document_storage import ensure_document_upload_dir
 from app.services.live_session_runner import live_session_runner
 from app.services.npc_avatar import ensure_npc_upload_dir
 
@@ -29,6 +33,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """应用启动时建表并初始化上传目录。"""
     await init_db()
     ensure_npc_upload_dir()
+    ensure_document_upload_dir()
     yield
     await live_session_runner.stop()
 
@@ -56,6 +61,8 @@ app.include_router(auth_router, prefix="/api/admin/auth")
 app.include_router(live_sessions_router, prefix="/api/admin/live-sessions")
 app.include_router(npcs_router, prefix="/api/admin/npcs")
 app.include_router(ai_config_router, prefix="/api/admin/ai-config")
+app.include_router(documents_router, prefix="/api/admin/documents")
+app.include_router(rag_router, prefix="/api/admin/rag")
 
 ensure_npc_upload_dir()
 app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")

@@ -32,6 +32,12 @@ export function AdminLayout() {
           <NavLink className="nav-link" to="/npcs">
             NPC管理
           </NavLink>
+          <NavLink className="nav-link" to="/documents">
+            文档管理
+          </NavLink>
+          <NavLink className="nav-link" to="/rag-test">
+            RAG 测试
+          </NavLink>
           <div className="nav-group">
             <span className="nav-group-title">系统配置</span>
             <div className="nav-sub">
