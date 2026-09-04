@@ -12,7 +12,6 @@ from app.models import admin_user as _admin_user_model  # noqa: F401
 from app.models import document as _document_model  # noqa: F401
 from app.models import live_session as _live_session_model  # noqa: F401
 from app.models import npc as _npc_model  # noqa: F401
-from app.models import session as _session_model  # noqa: F401 — 迁移前仍需 sessions 表
 from app.routers.ai_config import router as ai_config_router
 from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router

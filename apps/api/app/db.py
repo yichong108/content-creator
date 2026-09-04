@@ -38,46 +38,6 @@ async def _ensure_live_session_source_session_id_column() -> None:
             await conn.execute(text("ALTER TABLE live_sessions ADD COLUMN source_session_id BIGINT NULL"))
 
 
-async def _migrate_sessions_to_live_sessions() -> None:
-    """将旧 sessions 表数据一次性迁移到 live_sessions，并清空 sessions 表。"""
-    from app.models.live_session import LiveSessionRow
-    from app.models.session import SessionRow
-
-    async with async_session() as db:
-        session_rows = list((await db.execute(select(SessionRow))).scalars().all())
-        if not session_rows:
-            return
-
-        migrated_result = await db.execute(
-            select(LiveSessionRow.source_session_id).where(LiveSessionRow.source_session_id.isnot(None))
-        )
-        migrated_ids = set(migrated_result.scalars().all())
-        existing_live_ids = set((await db.execute(select(LiveSessionRow.id))).scalars().all())
-
-        for row in session_rows:
-            if row.id not in migrated_ids:
-                live_kwargs: dict[str, object] = {
-                    "title": row.title,
-                    "description": row.description,
-                    "chat_items": row.chat_items,
-                    "peer_npc_ids": list(row.peer_npc_ids or []),
-                    "self_npc_id": row.self_npc_id,
-                    "mobile_enabled": row.mobile_enabled,
-                    "enabled": False,
-                    "running": False,
-                    "source_session_id": row.id,
-                    "created_at": row.created_at,
-                    "updated_at": row.updated_at,
-                }
-                if row.id not in existing_live_ids:
-                    live_kwargs["id"] = row.id
-                db.add(LiveSessionRow(**live_kwargs))
-
-            await db.delete(row)
-
-        await db.commit()
-
-
 async def _ensure_live_session_mobile_enabled_column() -> None:
     """为已有 deployments 补齐 live_sessions.mobile_enabled 列。"""
     async with engine.begin() as conn:
@@ -236,29 +196,6 @@ async def _column_exists(conn: AsyncConnection, table_name: str, column_name: st
     return bool(result.scalar_one())
 
 
-async def _ensure_session_npc_role_columns() -> None:
-    """为 sessions 表补齐 peer_npc_ids / self_npc_id 列，并从旧 peer_npc_id 迁移。"""
-    async with engine.begin() as conn:
-        if not await _column_exists(conn, "sessions", "peer_npc_ids"):
-            await conn.execute(
-                text("ALTER TABLE sessions ADD COLUMN peer_npc_ids JSON NOT NULL DEFAULT (JSON_ARRAY())")
-            )
-        if not await _column_exists(conn, "sessions", "self_npc_id"):
-            await conn.execute(text("ALTER TABLE sessions ADD COLUMN self_npc_id BIGINT NULL"))
-
-        if await _column_exists(conn, "sessions", "peer_npc_id"):
-            await conn.execute(
-                text(
-                    """
-                    UPDATE sessions
-                    SET peer_npc_ids = JSON_ARRAY(peer_npc_id)
-                    WHERE JSON_LENGTH(peer_npc_ids) = 0
-                      AND peer_npc_id IS NOT NULL
-                    """
-                )
-            )
-
-
 async def _ensure_live_session_npc_role_columns() -> None:
     """为 live_sessions 表补齐 peer_npc_ids / self_npc_id，并从旧字段迁移。"""
     async with engine.begin() as conn:
@@ -317,9 +254,7 @@ async def init_db() -> None:
     await _ensure_npc_tags_column()
     await _ensure_npc_avatar_url_column()
     await _ensure_live_session_npc_ids_column()
-    await _ensure_session_npc_role_columns()
     await _ensure_live_session_npc_role_columns()
-    await _migrate_sessions_to_live_sessions()
     await _ensure_default_live_session()
     await _ensure_default_live_mobile_session()
     await _reset_stale_live_session_running()
