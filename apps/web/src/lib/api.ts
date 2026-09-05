@@ -158,3 +158,80 @@ export function updateLiveSessionRunning(
     data: { running },
   });
 }
+
+// ---------------------------------------------------------------------------
+// 客户聊天（AI 客服）
+// ---------------------------------------------------------------------------
+
+/** 单条客户聊天消息（后端 CustomerChatMessage 的前端投影） */
+export interface CustomerChatMessage {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+/** 客户聊天历史加载响应 */
+export interface CustomerChatHistoryResponse {
+  messages: CustomerChatMessage[];
+  has_more: boolean;
+  /** 下一页游标（最早一条的 id），has_more=true 时返回 */
+  next_cursor: number | null;
+}
+
+/** RAG 参考来源片段 */
+export interface RagSource {
+  document_id: number;
+  filename: string;
+  score: number | null;
+  snippet: string;
+}
+
+/** 客户发送消息响应 */
+export interface CustomerChatSendResponse {
+  message: CustomerChatMessage;
+  sources: RagSource[];
+}
+
+/**
+ * 加载客户聊天历史（游标式向上翻页）。
+ *
+ * 首次加载不传 beforeId，返回最新 N 条；
+ * 向上滚动到顶部时传入 beforeId（= 当前最早消息的 id），继续加载更早的记录。
+ *
+ * @param sessionId - 客户会话标识（前端生成的 UUID）
+ * @param beforeId - 翻页游标，首次加载不传
+ * @param limit - 单次加载条数，默认 20
+ */
+export function fetchCustomerChatHistory(
+  sessionId: string,
+  beforeId?: number,
+  limit = 20,
+): Promise<RequestResult<CustomerChatHistoryResponse>> {
+  const params: Record<string, string | number> = { session_id: sessionId, limit };
+  if (beforeId != null) {
+    params.before_id = beforeId;
+  }
+  return request<CustomerChatHistoryResponse>({
+    url: "/api/mobile/customer-chat/history",
+    method: "GET",
+    params,
+  });
+}
+
+/**
+ * 发送客户消息，经 RAG + Agent 后返回 AI 客服回复。
+ *
+ * @param sessionId - 客户会话标识
+ * @param message - 客户输入的消息正文
+ */
+export function sendCustomerChatMessage(
+  sessionId: string,
+  message: string,
+): Promise<RequestResult<CustomerChatSendResponse>> {
+  return request<CustomerChatSendResponse>({
+    url: "/api/mobile/customer-chat/send",
+    method: "POST",
+    data: { session_id: sessionId, message },
+  });
+}

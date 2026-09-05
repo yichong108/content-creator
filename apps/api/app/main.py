@@ -16,6 +16,7 @@ from app.routers.ai_config import router as ai_config_router
 from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router
 from app.routers.chat_items import router as chat_items_router
+from app.routers.customer_chat import router as customer_chat_router
 from app.routers.documents import router as documents_router
 from app.routers.health import router as health_router
 from app.routers.live_sessions import router as live_sessions_router
@@ -57,6 +58,7 @@ app.include_router(health_router)
 app.include_router(chat_items_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(mobile_router, prefix="/api/mobile")
+app.include_router(customer_chat_router, prefix="/api/mobile/customer-chat")
 app.include_router(auth_router, prefix="/api/admin/auth")
 app.include_router(live_sessions_router, prefix="/api/admin/live-sessions")
 app.include_router(npcs_router, prefix="/api/admin/npcs")

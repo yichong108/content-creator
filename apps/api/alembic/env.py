@@ -34,7 +34,7 @@ _sync_database_url = settings.database_url.replace("mysql+aiomysql", "mysql+pymy
 # 导入所有模型，触发 Base.metadata 表注册
 # ---------------------------------------------------------------------------
 from app.db import Base  # noqa: E402
-from app.models import admin_user, document, live_session, npc  # noqa: E402,F401
+from app.models import admin_user, customer_chat, document, live_session, npc  # noqa: E402,F401
 
 target_metadata = Base.metadata
 

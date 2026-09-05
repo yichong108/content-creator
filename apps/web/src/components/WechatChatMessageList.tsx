@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type UIEventHandler } from "react";
 
 import { WechatMessageText } from "@/components/WechatMessageText";
 import type { ChatItem } from "@/data/chat-items";
@@ -17,7 +17,14 @@ export type WechatChatMessageListProps = {
   className?: string;
   /** 头像渲染样式：image=图片（默认），circle=纯色圆占位符 */
   avatarVariant?: "image" | "circle";
+  /** 滚动到顶部附近时触发，用于向上翻页加载历史 */
+  onReachTop?: () => void;
 };
+
+/** 用户距底部的像素阈值，低于此值视为"在底部" */
+const BOTTOM_THRESHOLD_PX = 100;
+/** 用户距顶部的像素阈值，低于此值视为"到达顶部" */
+const TOP_THRESHOLD_PX = 80;
 
 /**
  * 消息头像渲染
@@ -161,20 +168,48 @@ export function WechatChatMessageList({
   peerTyping = false,
   className,
   avatarVariant = "image",
+  onReachTop,
 }: WechatChatMessageListProps) {
   const scrollRef = useRef<HTMLElement>(null);
+  /** 记录一次到达顶部是否已经触发过（防抖：避免在加载历史期间反复触发） */
+  const reachTopFiredRef = useRef(false);
+
+  /** 判断用户当前是否停留在底部附近 */
+  const isNearBottom = (el: HTMLElement): boolean =>
+    el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_THRESHOLD_PX;
 
   useEffect(() => {
     const section = scrollRef.current;
     if (!section || loading || error) {
       return;
     }
-    section.scrollTop = section.scrollHeight;
+    // 仅当用户当前就在底部时才自动滚到底部；
+    // 用户已向上翻页查看历史时，不要把他们拉回底部。
+    if (isNearBottom(section)) {
+      section.scrollTop = section.scrollHeight;
+    }
   }, [chatItems, loading, error, peerTyping]);
+
+  /** 滚动事件：检测是否到达顶部触发历史加载 */
+  const handleScroll: UIEventHandler<HTMLElement> = () => {
+    const section = scrollRef.current;
+    if (!section || !onReachTop) {
+      return;
+    }
+    if (section.scrollTop <= TOP_THRESHOLD_PX && !reachTopFiredRef.current) {
+      reachTopFiredRef.current = true;
+      onReachTop();
+    }
+    // 用户向下滚动离开顶部后，重置标记
+    if (section.scrollTop > TOP_THRESHOLD_PX) {
+      reachTopFiredRef.current = false;
+    }
+  };
 
   return (
     <section
       ref={scrollRef}
+      onScroll={onReachTop ? handleScroll : undefined}
       className={
         className ??
         "-mt-px min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(0.25rem+1px)] pt-[calc(0.25rem+1px)]"
