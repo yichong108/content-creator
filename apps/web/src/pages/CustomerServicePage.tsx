@@ -13,6 +13,28 @@ import { getRequestErrorMessage } from "@/lib/request";
 /** localStorage 中存储客户会话 ID 的 key */
 const SESSION_ID_STORAGE_KEY = "customer-chat-session-id";
 
+/**
+ * 预设快捷测试场景标签。
+ *
+ * 覆盖四类典型测试场景：
+ * - RAG 命中：问题应该能在知识库里找到答案
+ * - RAG 未命中：知识库没有相关资料，应诚实告知用户
+ * - 多轮追问：依赖上下文的追问，验证 agent 能否记住之前的对话
+ * - 边界场景：超出服务范围或敏感问题
+ *
+ * 注意：以下问题为通用占位示例，实际使用前应替换为你 RAG 知识库中
+ * 真实文档覆盖的业务问题，才能有效验证命中效果。
+ */
+const QUICK_QUESTIONS: { label: string; text: string }[] = [
+  { label: "👋 你好", text: "你好，请问你能帮我做什么？" },
+  { label: "📦 如何退款", text: "如果我不满意，怎么申请退款？" },
+  { label: "🚚 发货多久到", text: "一般下单后多久能收到货？" },
+  { label: "💰 价格多少", text: "你们的产品价格是怎么定的？" },
+  { label: "🔧 使用教程", text: "能给我一个使用教程吗？" },
+  { label: "⚠️ 超范围问题", text: "帮我订一张明天去北京的机票" },
+  { label: "🤔 多轮追问", text: "你刚才说的那个能再详细解释一下吗？" },
+];
+
 /** AI 客服侧的 NPC 固定信息（incoming 消息） */
 const ASSISTANT_INFO = {
   npc_id: 1,
@@ -236,6 +258,22 @@ export function CustomerServicePage() {
       />
 
       <footer className="shrink-0 border-t-[0.5px] border-black/[0.05] bg-[var(--wechat-composer-bg)] px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        {/* 快捷测试场景标签 —— 点击即把问题填入输入框，方便快速验证 RAG + Agent 回复效果 */}
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {QUICK_QUESTIONS.map((q) => (
+            <button
+              key={q.label}
+              type="button"
+              disabled={sending}
+              onClick={() => setDraft(q.text)}
+              className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[12px] leading-[1.4] text-[var(--wechat-text-secondary)] active:bg-black/[0.04] disabled:opacity-40"
+              title={q.text}
+            >
+              {q.label}
+            </button>
+          ))}
+        </div>
+
         <form className="flex items-end gap-2" onSubmit={handleSubmit}>
           <input
             type="text"
