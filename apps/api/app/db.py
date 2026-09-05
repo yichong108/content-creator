@@ -101,6 +101,27 @@ async def _reset_stale_live_session_running() -> None:
         await session.commit()
 
 
+async def _ensure_npc_created_by_column() -> None:
+    """为已有 deployments 补齐 npcs.created_by 列。"""
+    async with engine.begin() as conn:
+        if not await _column_exists(conn, "npcs", "created_by"):
+            await conn.execute(text("ALTER TABLE npcs ADD COLUMN created_by BIGINT NULL"))
+
+
+async def _ensure_document_created_by_column() -> None:
+    """为已有 deployments 补齐 documents.created_by 列。"""
+    async with engine.begin() as conn:
+        if not await _column_exists(conn, "documents", "created_by"):
+            await conn.execute(text("ALTER TABLE documents ADD COLUMN created_by BIGINT NULL"))
+
+
+async def _ensure_live_session_created_by_column() -> None:
+    """为已有 deployments 补齐 live_sessions.created_by 列。"""
+    async with engine.begin() as conn:
+        if not await _column_exists(conn, "live_sessions", "created_by"):
+            await conn.execute(text("ALTER TABLE live_sessions ADD COLUMN created_by BIGINT NULL"))
+
+
 async def _ensure_default_live_session() -> None:
     """
     若库中尚无已开启的直播会话，则启用最近更新的直播会话。
@@ -254,6 +275,9 @@ async def init_db() -> None:
     await _ensure_npc_avatar_url_column()
     await _ensure_live_session_npc_ids_column()
     await _ensure_live_session_npc_role_columns()
+    await _ensure_npc_created_by_column()
+    await _ensure_document_created_by_column()
+    await _ensure_live_session_created_by_column()
     await _ensure_default_live_session()
     await _ensure_default_live_mobile_session()
     await _reset_stale_live_session_running()

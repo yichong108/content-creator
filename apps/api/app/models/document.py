@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Integer, String
+from sqlalchemy import BigInteger, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -18,3 +18,9 @@ class DocumentRow(TimestampMixin, Base):
     extension: Mapped[str] = mapped_column(String(16), nullable=False)
     # 文件大小，单位字节
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    # 创建人 ID，关联 admin_users.id
+    created_by: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("admin_users.id"),
+        nullable=True,
+    )

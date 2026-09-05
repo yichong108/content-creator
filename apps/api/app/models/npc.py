@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, BigInteger, String, Text
+from sqlalchemy import JSON, BigInteger, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -20,3 +20,9 @@ class NpcRow(TimestampMixin, Base):
     tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     # 头像图片 URL，可选
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # 创建人 ID，关联 admin_users.id
+    created_by: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("admin_users.id"),
+        nullable=True,
+    )

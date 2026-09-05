@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, BigInteger, Boolean, String, Text
+from sqlalchemy import JSON, BigInteger, Boolean, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -22,6 +22,12 @@ class LiveSessionRow(TimestampMixin, Base):
     peer_npc_ids: Mapped[list[int]] = mapped_column(JSON, nullable=False, default=list)
     # 用户自身扮演的 NPC ID，为空表示用户真实身份参与
     self_npc_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # 创建人 ID，关联 admin_users.id
+    created_by: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("admin_users.id"),
+        nullable=True,
+    )
     # 是否在桌面端展示/启用该会话
     enabled: Mapped[bool] = mapped_column(
         Boolean,

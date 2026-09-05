@@ -5,8 +5,8 @@
   "scripts": {
     "setup": "uv sync && node scripts/ensure-env.mjs",
     "lock": "uv lock",
-    "dev": "uv run python scripts/serve.py --reload",
-    "start": "uv run python scripts/serve.py",
+    "dev": "uv run uvicorn app.main:app --reload --reload-dir app --reload-include .env --host 0.0.0.0 --port 8000 --timeout-graceful-shutdown 3",
+    "start": "uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
     "lint": "uv run ruff check .",
     "format": "uv run ruff format .",
     "format:check": "uv run ruff format --check .",
