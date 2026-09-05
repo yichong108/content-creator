@@ -1,20 +1,24 @@
-"""种子脚本：向 RAG 向量库灌入示例客服 FAQ 文档。
+"""种子脚本：以完整链路向系统灌入示例客服 FAQ 文档。
 
-用途：本地开发或测试时快速为 AI 客服准备知识库数据，
-方便验证 RAG 检索 + Agent 回复的完整链路。
+与 admin 上传接口行为一致，同时写入三处：
+1. 磁盘文件（uploads/documents/{id}__{原文件名}.txt）
+2. documents 数据库表
+3. RAG 向量索引（Chroma + LlamaIndex）
+
+具备幂等性：按文件名去重，重跑脚本会先清理已有记录再重建，
+不会产生重复数据。
 
 用法：
     cd apps/api
     uv run python scripts/seed_rag_documents.py
 
-直接调用 rag_service.ingest()，无需启动 API 服务或登录鉴权。
-注意：本脚本仅写入 Chroma 向量索引（磁盘持久化），
-不会向 documents 数据库表写入记录——这些文档是测试用的，
-不走 admin 文档管理流程。
+前提：数据库已启动（MySQL 可连接），admin 初始化已完成
+（脚本会自动查 admin_users 表取第一个管理员作为 created_by）。
 """
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -22,13 +26,22 @@ from pathlib import Path
 _API_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_API_ROOT))
 
+from sqlalchemy import select  # noqa: E402
+
+from app.db import async_session  # noqa: E402
+from app.models.admin_user import AdminUserRow  # noqa: E402
+from app.models.document import DocumentRow  # noqa: E402
+from app.services.document_storage import (  # noqa: E402
+    delete_document_file,
+    document_extension_for,
+    store_document_file,
+)
 from app.services.rag_service import get_rag_service  # noqa: E402
 
-# 示例文档列表：(document_id, filename, 文本内容)
-# document_id 选 1000+ 避开 admin 上传的正常文档 ID 范围
-_SEED_DOCUMENTS: list[tuple[int, str, str]] = [
+# 示例文档列表：(filename, 文本内容)
+# 扩展名必须在 ALLOWED_DOCUMENT_EXTENSIONS 内，当前脚本统一用 .txt
+_SEED_DOCUMENTS: list[tuple[str, str]] = [
     (
-        1001,
         "产品介绍与价格.txt",
         """产品介绍与价格
 
@@ -52,7 +65,6 @@ _SEED_DOCUMENTS: list[tuple[int, str, str]] = [
 """,
     ),
     (
-        1002,
         "发货与物流政策.txt",
         """发货与物流政策
 
@@ -75,7 +87,6 @@ _SEED_DOCUMENTS: list[tuple[int, str, str]] = [
 """,
     ),
     (
-        1003,
         "退换货政策.txt",
         """退换货政策
 
@@ -106,7 +117,6 @@ _SEED_DOCUMENTS: list[tuple[int, str, str]] = [
 """,
     ),
     (
-        1004,
         "使用教程.txt",
         """使用教程
 
@@ -145,29 +155,80 @@ A: 可以。您通过本平台生成的所有对话内容和截图，版权归�
 ]
 
 
-def main() -> None:
-    """将示例文档批量写入 RAG 向量索引。"""
+async def _find_created_by(db_session) -> int | None:
+    """查 admin_users 表取第一个管理员的 id 作为 created_by。"""
+    result = await db_session.execute(select(AdminUserRow).limit(1))
+    admin = result.scalar_one_or_none()
+    return admin.id if admin else None
+
+
+async def _cleanup_existing(db_session, filename: str) -> None:
+    """按文件名清理已存在的旧记录（DB + 磁盘文件 + 向量索引）。"""
+    rag = get_rag_service()
+    result = await db_session.execute(select(DocumentRow).where(DocumentRow.filename == filename))
+    for row in result.scalars().all():
+        rag.remove(row.id)
+        delete_document_file(row.id, row.filename)
+        await db_session.delete(row)
+    await db_session.commit()
+
+
+async def main_async() -> None:
+    """完整链路批量灌入示例文档。"""
     rag = get_rag_service()
 
-    print(f"准备写入 {len(_SEED_DOCUMENTS)} 份示例文档到 RAG 索引...")
-    print(f"索引落盘目录: {_API_ROOT / 'data' / 'rag'}")
+    print(f"准备写入 {len(_SEED_DOCUMENTS)} 份示例文档...")
+    print(f"磁盘目录: {_API_ROOT / 'uploads' / 'documents'}")
+    print(f"索引目录: {_API_ROOT / 'data' / 'rag'}")
     print("-" * 50)
 
-    for doc_id, filename, text in _SEED_DOCUMENTS:
-        print(f"正在写入 [{doc_id}] {filename}  ({len(text)} 字符)... ", end="", flush=True)
-        try:
+    async with async_session() as db_session:
+        created_by = await _find_created_by(db_session)
+        print(f"created_by = {created_by}")
+        print()
+
+        for filename, text in _SEED_DOCUMENTS:
+            print(f"[{filename}] ({len(text)} 字符)...")
+
+            # 幂等清理
+            print("  清理已有记录... ", end="", flush=True)
+            await _cleanup_existing(db_session, filename)
+            print("✓")
+
+            extension = document_extension_for(filename)
+            if extension is None:
+                print("  ✗ 跳过：扩展名不在允许列表内")
+                continue
+
+            # 写 DB 行
+            row = DocumentRow(
+                filename=filename,
+                extension=extension.lstrip("."),
+                file_size=len(text.encode("utf-8")),
+                created_by=created_by,
+            )
+            db_session.add(row)
+            await db_session.commit()
+            await db_session.refresh(row)
+            doc_id = row.id
+            print(f"  DB 行 id={doc_id} ✓")
+
+            # 存磁盘文件
+            store_document_file(doc_id, filename, text.encode("utf-8"))
+            print("  磁盘文件 ✓")
+
+            # 写 RAG 向量索引
             rag.ingest(doc_id, filename, text)
-            print("✓ 成功")
-        except Exception as exc:  # noqa: BLE001
-            print(f"✗ 失败: {exc}")
+            print("  RAG 索引 ✓")
+            print()
 
     print("-" * 50)
-    print("完成！现在可以启动 API 服务，在客服页面测试以下问题：")
-    print("  - 你好，请问你能帮我做什么？")
-    print("  - 你们的产品价格是怎么定的？")
-    print("  - 一般下单后多久能收到货？")
-    print("  - 如果我不满意，怎么申请退款？")
-    print("  - 能给我一个使用教程吗？")
+    print("全部完成！")
+
+
+def main() -> None:
+    """同步入口：用 asyncio.run 执行异步灌入流程。"""
+    asyncio.run(main_async())
 
 
 if __name__ == "__main__":
