@@ -16,6 +16,7 @@ from app.services.auth_security import get_current_admin
 from app.services.document_storage import (
     ALLOWED_DOCUMENT_EXTENSIONS,
     MAX_DOCUMENT_BYTES,
+    build_document_relative_url,
     delete_document_file,
     document_extension_for,
     resolve_document_path,
@@ -150,7 +151,7 @@ async def upload_document(
 
     # 解析文本并写入索引，失败时回滚数据库与磁盘文件
     try:
-        relative_url = await asyncio.to_thread(store_document_file, row.id, extension, content)
+        relative_url = await asyncio.to_thread(store_document_file, row.id, filename, content)
         path = resolve_document_path(relative_url)
         if path is None:
             raise ValueError("文档存储路径异常")
@@ -162,7 +163,7 @@ async def upload_document(
         await asyncio.to_thread(get_rag_service().ingest, row.id, filename, text)
     except Exception as exc:  # noqa: BLE001 — 回滚后统一返回 400
         logger.exception("文档索引失败: %s", exc)
-        delete_document_file(row.id, extension)
+        delete_document_file(row.id, filename)
         await db.delete(row)
         await db.commit()
         raise HTTPException(status_code=400, detail=f"文档解析或索引失败: {exc}") from exc
@@ -190,7 +191,7 @@ async def download_document(
         HTTPException: 文档不存在或不属于当前用户，或文件缺失时返回 404。
     """
     row = await _get_document_row(document_id, current_admin.id, db)
-    path = resolve_document_path(f"/uploads/documents/{row.id}{row.extension}")
+    path = resolve_document_path(build_document_relative_url(row.id, row.filename))
     if path is None or not path.is_file():
         raise HTTPException(status_code=404, detail="文档文件缺失")
 
@@ -220,7 +221,7 @@ async def delete_document(
     row = await _get_document_row(document_id, current_admin.id, db)
 
     await asyncio.to_thread(get_rag_service().remove, row.id)
-    delete_document_file(row.id, row.extension)
+    delete_document_file(row.id, row.filename)
     await db.delete(row)
     await db.commit()
     return success_response(None, message="deleted")
