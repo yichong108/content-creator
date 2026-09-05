@@ -15,9 +15,35 @@ export type WechatChatMessageListProps = {
   peerTyping?: boolean;
   /** 附加到滚动容器的 className */
   className?: string;
+  /** 头像渲染样式：image=图片（默认），circle=纯色圆占位符 */
+  avatarVariant?: "image" | "circle";
 };
 
-function MessageAvatar({ src, alt }: { src: string; alt: string }) {
+/**
+ * 消息头像渲染
+ *
+ * 根据 avatarVariant 决定是渲染 img 还是纯色圆占位符。
+ * 客服等场景使用 circle 模式避免引入额外图片资源。
+ */
+function MessageAvatar({
+  src,
+  alt,
+  variant = "image",
+}: {
+  src: string;
+  alt: string;
+  variant?: "image" | "circle";
+}) {
+  if (variant === "circle") {
+    return (
+      <div
+        role="img"
+        aria-label={alt}
+        className="h-[calc(18px+17px*1.4)] w-[calc(18px+17px*1.4)] shrink-0 rounded-full bg-[#d8d8d8]"
+      />
+    );
+  }
+
   const size = Math.round(18 + 17 * 1.4);
 
   return (
@@ -31,13 +57,35 @@ function MessageAvatar({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-function FallbackAvatar({ variant }: { variant: "self" | "other" }) {
+/**
+ * 头像加载失败时的占位头像
+ *
+ * 与 MessageAvatar 接受相同的 variant 参数，保持渲染一致性。
+ */
+function FallbackAvatar({
+  variant,
+  avatarVariant = "image",
+}: {
+  variant: "self" | "other";
+  avatarVariant?: "image" | "circle";
+}) {
   const src = variant === "self" ? "/avatar-self.png" : "/avatar-other.png";
   const alt = variant === "self" ? "我的头像" : "对方头像";
-  return <MessageAvatar src={src} alt={alt} />;
+  return <MessageAvatar src={src} alt={alt} variant={avatarVariant} />;
 }
 
-function ChatRow({ item }: { item: ChatItem }) {
+/**
+ * 单条聊天记录行
+ *
+ * 根据 item.kind 渲染不同布局；avatarVariant 透传给 MessageAvatar。
+ */
+function ChatRow({
+  item,
+  avatarVariant = "image",
+}: {
+  item: ChatItem;
+  avatarVariant?: "image" | "circle";
+}) {
   if (item.kind === "timestamp") {
     return (
       <p className="pb-4 pt-[calc(1rem+5px)] text-center text-[12px] leading-[1.2] text-[var(--wechat-text-secondary)]">
@@ -60,6 +108,7 @@ function ChatRow({ item }: { item: ChatItem }) {
         <MessageAvatar
           src={resolveChatItemAvatarUrl(item.npc_avatar_url)}
           alt={`${item.npc_name} 头像`}
+          variant={avatarVariant}
         />
         <div className="wechat-bubble-in">
           <WechatMessageText text={item.text} />
@@ -73,6 +122,7 @@ function ChatRow({ item }: { item: ChatItem }) {
       <MessageAvatar
         src={resolveChatItemAvatarUrl(item.npc_avatar_url)}
         alt={`${item.npc_name} 头像`}
+        variant={avatarVariant}
       />
       <div className="wechat-bubble-out">
         <WechatMessageText text={item.text} />
@@ -81,10 +131,11 @@ function ChatRow({ item }: { item: ChatItem }) {
   );
 }
 
-function PeerTypingRow() {
+/** 对方正在输入状态的占位行 */
+function PeerTypingRow({ avatarVariant = "image" }: { avatarVariant?: "image" | "circle" }) {
   return (
     <div className="flex items-start gap-[var(--wechat-avatar-gap)] py-1.5" aria-live="polite">
-      <FallbackAvatar variant="other" />
+      <FallbackAvatar variant="other" avatarVariant={avatarVariant} />
       <div className="wechat-bubble-in wechat-typing-bubble">
         <span className="wechat-typing-dots" aria-hidden>
           <span />
@@ -109,6 +160,7 @@ export function WechatChatMessageList({
   error = null,
   peerTyping = false,
   className,
+  avatarVariant = "image",
 }: WechatChatMessageListProps) {
   const scrollRef = useRef<HTMLElement>(null);
 
@@ -134,8 +186,10 @@ export function WechatChatMessageList({
       {error && <p className="py-8 text-center text-[14px] text-red-500">{error}</p>}
       {!loading &&
         !error &&
-        chatItems.map((item, index) => <ChatRow key={`${item.kind}-${index}`} item={item} />)}
-      {!loading && !error && peerTyping && <PeerTypingRow />}
+        chatItems.map((item, index) => (
+          <ChatRow key={`${item.kind}-${index}`} item={item} avatarVariant={avatarVariant} />
+        ))}
+      {!loading && !error && peerTyping && <PeerTypingRow avatarVariant={avatarVariant} />}
     </section>
   );
 }

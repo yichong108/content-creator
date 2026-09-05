@@ -78,7 +78,7 @@ export function CustomerServicePage() {
         <span className="h-8 w-8" aria-hidden />
       </header>
 
-      <WechatChatMessageList chatItems={chatItems} />
+      <WechatChatMessageList chatItems={chatItems} avatarVariant="circle" />
 
       <footer className="shrink-0 border-t-[0.5px] border-black/[0.05] bg-[var(--wechat-composer-bg)] px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <form className="flex items-end gap-2" onSubmit={handleSubmit}>
