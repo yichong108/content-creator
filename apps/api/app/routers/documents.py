@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
+from app.models.admin_user import AdminUserRow
 from app.models.document import DocumentRow
 from app.schemas.document import DocumentSummary
 from app.schemas.pagination import PageResult
@@ -49,20 +50,23 @@ def _to_summary(row: DocumentRow) -> DocumentSummary:
     )
 
 
-async def _get_document_row(document_id: int, db: AsyncSession) -> DocumentRow:
-    """按 ID 查询文档，不存在时抛出 404。
+async def _get_document_row(document_id: int, current_admin_id: int, db: AsyncSession) -> DocumentRow:
+    """按 ID 查询当前用户的文档，不存在或无权限时抛出 404。
 
     Args:
         document_id: 文档 ID。
+        current_admin_id: 当前登录管理员 ID。
         db: 异步数据库会话。
 
     Returns:
         文档 ORM 行。
 
     Raises:
-        HTTPException: 文档不存在时返回 404。
+        HTTPException: 文档不存在或不属于当前用户时返回 404。
     """
-    result = await db.execute(select(DocumentRow).where(DocumentRow.id == document_id))
+    result = await db.execute(
+        select(DocumentRow).where(DocumentRow.id == document_id, DocumentRow.created_by == current_admin_id)
+    )
     row = result.scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="文档不存在")
@@ -71,13 +75,15 @@ async def _get_document_row(document_id: int, db: AsyncSession) -> DocumentRow:
 
 @router.get("")
 async def list_documents(
+    current_admin: AdminUserRow = Depends(get_current_admin),
     page: int = Query(default=1, ge=1, description="页码，从 1 开始"),
     page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100, description="每页记录数"),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[PageResult[DocumentSummary]]:
-    """分页返回文档列表，按上传时间降序排列。
+    """分页返回当前用户的文档列表，按上传时间降序排列。
 
     Args:
+        current_admin: 当前登录管理员。
         page: 页码，从 1 开始。
         page_size: 每页记录数，默认 10，最大 100。
         db: 异步数据库会话。
@@ -85,11 +91,12 @@ async def list_documents(
     Returns:
         统一响应包裹的分页文档列表。
     """
-    total_stmt = select(func.count()).select_from(DocumentRow)
+    total_stmt = select(func.count()).select_from(DocumentRow).where(DocumentRow.created_by == current_admin.id)
     total = (await db.execute(total_stmt)).scalar_one()
 
     stmt = (
         select(DocumentRow)
+        .where(DocumentRow.created_by == current_admin.id)
         .order_by(DocumentRow.created_at.desc(), DocumentRow.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
@@ -102,6 +109,7 @@ async def list_documents(
 @router.post("")
 async def upload_document(
     file: UploadFile = File(...),
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[DocumentSummary]:
     """上传文档并写入 RAG 向量索引。
@@ -110,6 +118,7 @@ async def upload_document(
 
     Args:
         file: 待上传的文档文件。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
@@ -129,7 +138,12 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="文档文件不能超过 20MB")
 
     filename = (file.filename or "document").strip()
-    row = DocumentRow(filename=filename, extension=extension, file_size=len(content))
+    row = DocumentRow(
+        filename=filename,
+        extension=extension,
+        file_size=len(content),
+        created_by=current_admin.id,
+    )
     db.add(row)
     await db.commit()
     await db.refresh(row)
@@ -159,21 +173,23 @@ async def upload_document(
 @router.get("/{document_id}/download")
 async def download_document(
     document_id: int,
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> FileResponse:
     """下载指定文档的原始文件。
 
     Args:
         document_id: 文档 ID。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
         携带原始文件名的附件响应。
 
     Raises:
-        HTTPException: 文档不存在或文件缺失时返回 404。
+        HTTPException: 文档不存在或不属于当前用户，或文件缺失时返回 404。
     """
-    row = await _get_document_row(document_id, db)
+    row = await _get_document_row(document_id, current_admin.id, db)
     path = resolve_document_path(f"/uploads/documents/{row.id}{row.extension}")
     if path is None or not path.is_file():
         raise HTTPException(status_code=404, detail="文档文件缺失")
@@ -185,21 +201,23 @@ async def download_document(
 @router.delete("/{document_id}")
 async def delete_document(
     document_id: int,
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[None]:
     """删除指定文档，并同步移除向量索引与磁盘文件。
 
     Args:
         document_id: 文档 ID。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
         统一响应包裹的空数据成功响应。
 
     Raises:
-        HTTPException: 文档不存在时返回 404。
+        HTTPException: 文档不存在或不属于当前用户时返回 404。
     """
-    row = await _get_document_row(document_id, db)
+    row = await _get_document_row(document_id, current_admin.id, db)
 
     await asyncio.to_thread(get_rag_service().remove, row.id)
     delete_document_file(row.id, row.extension)

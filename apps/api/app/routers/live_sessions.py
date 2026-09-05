@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
+from app.models.admin_user import AdminUserRow
 from app.models.live_session import LiveSessionRow
 from app.schemas.chat_items_generate import GenerateChatItemsRequest, GenerateChatItemsResponse
 from app.schemas.error_codes import ERR_BAD_REQUEST
@@ -105,20 +106,25 @@ async def _to_detail(row: LiveSessionRow, db: AsyncSession) -> LiveSessionDetail
     )
 
 
-async def _get_live_session_row(live_session_id: int, db: AsyncSession) -> LiveSessionRow:
-    """按 ID 查询直播会话，不存在时抛出 404。
+async def _get_live_session_row(live_session_id: int, current_admin_id: int, db: AsyncSession) -> LiveSessionRow:
+    """按 ID 查询当前用户的直播会话，不存在或无权限时抛出 404。
 
     Args:
         live_session_id: 直播会话 ID。
+        current_admin_id: 当前登录管理员 ID。
         db: 异步数据库会话。
 
     Returns:
         直播会话 ORM 行。
 
     Raises:
-        HTTPException: 直播会话不存在时返回 404。
+        HTTPException: 直播会话不存在或不属于当前用户时返回 404。
     """
-    result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.id == live_session_id))
+    result = await db.execute(
+        select(LiveSessionRow).where(
+            LiveSessionRow.id == live_session_id, LiveSessionRow.created_by == current_admin_id
+        )
+    )
     row = result.scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="直播会话不存在")
@@ -127,17 +133,23 @@ async def _get_live_session_row(live_session_id: int, db: AsyncSession) -> LiveS
 
 @router.get("")
 async def list_live_sessions(
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[list[LiveSessionSummary]]:
-    """返回全部直播会话摘要列表，按更新时间降序排列。
+    """返回当前用户的直播会话摘要列表，按更新时间降序排列。
 
     Args:
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
         统一响应包裹的直播会话摘要列表。
     """
-    result = await db.execute(select(LiveSessionRow).order_by(LiveSessionRow.updated_at.desc()))
+    result = await db.execute(
+        select(LiveSessionRow)
+        .where(LiveSessionRow.created_by == current_admin.id)
+        .order_by(LiveSessionRow.updated_at.desc())
+    )
     rows = result.scalars().all()
     return success_response([_to_summary(row) for row in rows])
 
@@ -228,21 +240,23 @@ async def generate_live_session_chat_items(
 @router.get("/{live_session_id}")
 async def get_live_session(
     live_session_id: int,
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[LiveSessionDetail]:
     """返回指定直播会话详情，含完整聊天记录 JSON。
 
     Args:
         live_session_id: 直播会话 ID。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
         统一响应包裹的直播会话详情。
 
     Raises:
-        HTTPException: 直播会话不存在时返回 404。
+        HTTPException: 直播会话不存在或不属于当前用户时返回 404。
     """
-    row = await _get_live_session_row(live_session_id, db)
+    row = await _get_live_session_row(live_session_id, current_admin.id, db)
     return success_response(await _to_detail(row, db))
 
 
@@ -250,12 +264,14 @@ async def get_live_session(
 async def create_live_session(
     payload: LiveSessionCreate,
     response: Response,
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[LiveSessionDetail | None]:
     """创建新直播会话。
 
     Args:
         payload: 创建直播会话请求体。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
@@ -279,6 +295,7 @@ async def create_live_session(
         peer_npc_ids=peer_npc_ids,
         self_npc_id=payload.self_npc_id,
         chat_items=chat_items,
+        created_by=current_admin.id,
     )
     db.add(row)
     await db.commit()
@@ -291,6 +308,7 @@ async def update_live_session(
     live_session_id: int,
     payload: LiveSessionUpdate,
     response: Response,
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[LiveSessionDetail | None]:
     """更新指定直播会话。
@@ -298,15 +316,16 @@ async def update_live_session(
     Args:
         live_session_id: 直播会话 ID。
         payload: 更新直播会话请求体。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
         统一响应包裹的更新后直播会话详情。
 
     Raises:
-        HTTPException: 直播会话不存在时返回 404。
+        HTTPException: 直播会话不存在或不属于当前用户时返回 404。
     """
-    row = await _get_live_session_row(live_session_id, db)
+    row = await _get_live_session_row(live_session_id, current_admin.id, db)
 
     if payload.title is not None:
         row.title = payload.title
@@ -343,29 +362,41 @@ async def update_live_session(
 async def update_live_session_enabled(
     live_session_id: int,
     payload: LiveSessionEnabledUpdate,
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[LiveSessionSummary]:
-    """更新直播会话展示开关，全局仅允许一个直播会话开启。
+    """更新直播会话展示开关，当前用户下仅允许一个直播会话开启。
 
     Args:
         live_session_id: 直播会话 ID。
         payload: 含 enabled 的请求体。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
         统一响应包裹的更新后直播会话摘要。
 
     Raises:
-        HTTPException: 直播会话不存在时返回 404。
+        HTTPException: 直播会话不存在或不属于当前用户时返回 404。
     """
-    row = await _get_live_session_row(live_session_id, db)
+    row = await _get_live_session_row(live_session_id, current_admin.id, db)
 
     if payload.enabled:
-        result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.enabled.is_(True)))
+        result = await db.execute(
+            select(LiveSessionRow).where(
+                LiveSessionRow.enabled.is_(True),
+                LiveSessionRow.created_by == current_admin.id,
+            )
+        )
         for enabled_row in result.scalars().all():
             enabled_row.enabled = False
 
-        running_result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.running.is_(True)))
+        running_result = await db.execute(
+            select(LiveSessionRow).where(
+                LiveSessionRow.running.is_(True),
+                LiveSessionRow.created_by == current_admin.id,
+            )
+        )
         for running_row in running_result.scalars().all():
             if running_row.id != live_session_id:
                 running_row.running = False
@@ -385,25 +416,32 @@ async def update_live_session_enabled(
 async def update_live_session_mobile_enabled(
     live_session_id: int,
     payload: LiveSessionMobileEnabledUpdate,
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[LiveSessionSummary]:
-    """更新直播会话移动端展示开关，全局仅允许一个直播会话开启。
+    """更新直播会话移动端展示开关，当前用户下仅允许一个直播会话开启。
 
     Args:
         live_session_id: 直播会话 ID。
         payload: 含 mobile_enabled 的请求体。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
         统一响应包裹的更新后直播会话摘要。
 
     Raises:
-        HTTPException: 直播会话不存在时返回 404。
+        HTTPException: 直播会话不存在或不属于当前用户时返回 404。
     """
-    row = await _get_live_session_row(live_session_id, db)
+    row = await _get_live_session_row(live_session_id, current_admin.id, db)
 
     if payload.mobile_enabled:
-        result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.mobile_enabled.is_(True)))
+        result = await db.execute(
+            select(LiveSessionRow).where(
+                LiveSessionRow.mobile_enabled.is_(True),
+                LiveSessionRow.created_by == current_admin.id,
+            )
+        )
         for enabled_row in result.scalars().all():
             enabled_row.mobile_enabled = False
 
@@ -418,31 +456,43 @@ async def update_live_session_mobile_enabled(
 async def update_live_session_running(
     live_session_id: int,
     payload: LiveSessionRunningUpdate,
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[LiveSessionSummary]:
-    """更新直播会话运行状态，全局仅允许一个直播会话处于 running。
+    """更新直播会话运行状态，当前用户下仅允许一个直播会话处于 running。
 
     开始运行时自动开启直播展示，并启动后台续写任务；停止时关闭 running 标记。
 
     Args:
         live_session_id: 直播会话 ID。
         payload: 含 running 的请求体。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
         统一响应包裹的更新后直播会话摘要。
 
     Raises:
-        HTTPException: 直播会话不存在时返回 404。
+        HTTPException: 直播会话不存在或不属于当前用户时返回 404。
     """
-    row = await _get_live_session_row(live_session_id, db)
+    row = await _get_live_session_row(live_session_id, current_admin.id, db)
 
     if payload.running:
-        result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.running.is_(True)))
+        result = await db.execute(
+            select(LiveSessionRow).where(
+                LiveSessionRow.running.is_(True),
+                LiveSessionRow.created_by == current_admin.id,
+            )
+        )
         for running_row in result.scalars().all():
             running_row.running = False
 
-        enabled_result = await db.execute(select(LiveSessionRow).where(LiveSessionRow.enabled.is_(True)))
+        enabled_result = await db.execute(
+            select(LiveSessionRow).where(
+                LiveSessionRow.enabled.is_(True),
+                LiveSessionRow.created_by == current_admin.id,
+            )
+        )
         for enabled_row in enabled_result.scalars().all():
             enabled_row.enabled = False
 
@@ -470,21 +520,23 @@ async def update_live_session_running(
 @router.delete("/{live_session_id}")
 async def delete_live_session(
     live_session_id: int,
+    current_admin: AdminUserRow = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[None]:
     """删除指定直播会话。
 
     Args:
         live_session_id: 直播会话 ID。
+        current_admin: 当前登录管理员。
         db: 异步数据库会话。
 
     Returns:
         统一响应包裹的空数据成功响应。
 
     Raises:
-        HTTPException: 直播会话不存在时返回 404。
+        HTTPException: 直播会话不存在或不属于当前用户时返回 404。
     """
-    row = await _get_live_session_row(live_session_id, db)
+    row = await _get_live_session_row(live_session_id, current_admin.id, db)
     if row.running:
         row.running = False
     await db.delete(row)
